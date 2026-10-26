@@ -21,6 +21,7 @@ const t0 = Date.now();
 const stamp = () => ((Date.now() - t0) / 1000).toFixed(2).padStart(6) + 's';
 const turns = [];
 up.on('event', (ev) => {
+  if (ev.type === 'audioProgress') return;
   if (ev.type === 'transcript' && !ev.final) { process.stdout.write(`\r${stamp()} … ${ev.transcript.slice(-70).padEnd(70)}`); return; }
   process.stdout.write('\r' + ' '.repeat(90) + '\r');
   if (ev.type === 'speechComplete') { turns.push(ev); console.log(`${stamp()} [${ev.speaker ?? ev.speakerLabel ?? '?'}] turn ${ev.turnId}: ${ev.transcript}`); }
