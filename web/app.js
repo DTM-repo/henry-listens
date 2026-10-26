@@ -50,11 +50,21 @@ function handle(ev) {
 }
 
 async function start() {
-  setStatus('asking for microphone…');
-  state.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  // Source: the microphone, or a recording when the URL has ?src=/path.wav (replay mode, same capture path).
+  const replay = new URLSearchParams(location.search).get('src');
   try { state.ctx = new AudioContext({ sampleRate: 24000 }); } catch { state.ctx = new AudioContext(); }
   await state.ctx.audioWorklet.addModule('/pcm-worklet.js');
-  const src = state.ctx.createMediaStreamSource(state.stream);
+  let src;
+  if (replay) {
+    setStatus(`replaying ${replay}…`);
+    state.audio = new Audio(replay); state.audio.crossOrigin = 'anonymous';
+    src = state.ctx.createMediaElementSource(state.audio);
+    state.audio.onended = () => setTimeout(() => stop(), 1500);
+  } else {
+    setStatus('asking for microphone…');
+    state.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+    src = state.ctx.createMediaStreamSource(state.stream);
+  }
   state.node = new AudioWorkletNode(state.ctx, 'pcm-frames');
   src.connect(state.node);                      // no connect to destination: we do not play the mic back
 
@@ -74,12 +84,13 @@ async function start() {
   log(`audio context ${state.ctx.sampleRate} Hz`);
   state.running = true; btn.textContent = 'Stop'; btn.className = 'stop';
   setStatus('connecting to Voice Transcribe…');
+  if (state.audio) await state.audio.play();
 }
 function stop(sendEnd = true) {
   if (!state.running) return;
   state.running = false;
   try { if (sendEnd && state.ws?.readyState === 1) state.ws.send(JSON.stringify({ type: 'end' })); } catch {}
-  state.node?.disconnect(); state.stream?.getTracks().forEach((t) => t.stop()); state.ctx?.close();
+  state.node?.disconnect(); state.stream?.getTracks().forEach((t) => t.stop()); state.audio?.pause(); state.ctx?.close();
   btn.textContent = 'Start listening'; btn.className = '';
   setStatus(`stopped · ${mmss(state.frames * 80)} of audio`);
 }
