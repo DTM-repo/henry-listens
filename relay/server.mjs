@@ -44,12 +44,13 @@ wss.on('connection', async (client, req) => {
     send({ type: 'relay', status: 'ready', sessionId: hs.sessionId, mode });
   } catch (e) { log('upstream failed:', e.message); send({ type: 'relay', status: 'upstream_failed', message: e.message }); client.close(1011); return; }
 
+  const dump = process.env.DUMP_PCM ? fs.createWriteStream(`${process.env.DUMP_PCM}/asr-${id}.pcm`) : null;
   client.on('message', (data, isBinary) => {
-    if (isBinary) return up.sendAudio(data);
+    if (isBinary) { dump?.write(data); return up.sendAudio(data); }
     let msg; try { msg = JSON.parse(String(data)); } catch { return; }
     if (msg.type === 'end') { log('browser ended stream after', Math.round(up.sentMs), 'ms audio'); up.end(); }
   });
-  client.on('close', () => { log('browser closed'); up.closed ? null : up.end(); setTimeout(() => up.abort(), 3000); });
+  client.on('close', () => { log('browser closed'); dump?.end(); up.closed ? null : up.end(); setTimeout(() => up.abort(), 3000); });
 });
 
 server.listen(PORT, () => console.log(`Henry Listens relay  →  http://localhost:${PORT}   (ws /asr)`));

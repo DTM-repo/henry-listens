@@ -67,7 +67,11 @@ async function start() {
   ws.onclose = (e) => { setStatus(`closed (${e.code})`, 'warn'); stop(false); };
 
   state.t0 = performance.now(); state.frames = 0;
-  state.node.port.onmessage = (m) => { if (ws.readyState === 1) { ws.send(m.data); state.frames++; if (state.frames % 25 === 0) $('#clock').textContent = mmss(state.frames * 80); } };
+  state.node.port.onmessage = (m) => {
+    if (ws.readyState === 1) { ws.send(m.data); state.frames++; if (state.frames % 25 === 0) $('#clock').textContent = mmss(state.frames * 80); }
+    if (state.frames % 5 === 0) { const v = new Int16Array(m.data); let sum = 0; for (let i = 0; i < v.length; i += 4) sum += v[i] * v[i]; const rms = Math.sqrt(sum / (v.length / 4)) / 32768; $('#level').style.width = Math.min(100, rms * 400) + '%'; }
+  };
+  log(`audio context ${state.ctx.sampleRate} Hz`);
   state.running = true; btn.textContent = 'Stop'; btn.className = 'stop';
   setStatus('connecting to Voice Transcribe…');
 }

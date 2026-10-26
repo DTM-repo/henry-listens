@@ -20,6 +20,7 @@
   #live { min-height:2.5em; color:var(--mute); padding:10px 0; font-style:italic }
   #log { font:12px/1.4 ui-monospace, Menlo, monospace; color:var(--mute); max-height:160px; overflow:auto; background:var(--panel); padding:8px; border-radius:8px; margin-top:24px }
   .meta { display:flex; gap:16px; color:var(--mute); font-size:13px; margin-left:auto }
+  #meter { display:inline-block; width:80px; height:8px; background:#262a35; border-radius:4px; overflow:hidden; vertical-align:middle } #level { display:block; height:100%; width:0; background:var(--ok); transition:width .1s }
   .note { color:var(--mute); font-size:13px; margin-top:28px }
 </style>
 </head>
@@ -29,7 +30,7 @@
   <select id="mode"><option>DIARIZATION</option><option>ENDPOINTING</option></select>
   <button id="toggle">Start listening</button>
   <button id="copy" class="ghost">Copy transcript</button>
-  <span class="meta"><span id="clock">00:00</span><span id="count">0 turns</span></span>
+  <span class="meta"><span id="meter"><span id="level"></span></span><span id="clock">00:00</span><span id="count">0 turns</span></span>
 </header>
 <main>
   <div id="status">idle</div>
