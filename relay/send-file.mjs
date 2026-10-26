@@ -19,12 +19,15 @@ console.log(`audio: ${(pcm.length / 48000).toFixed(1)} s, ${Math.ceil(pcm.length
 const up = new AsrUpstream({ key: process.env.MODEL_API_KEY, mode });
 const t0 = Date.now();
 const stamp = () => ((Date.now() - t0) / 1000).toFixed(2).padStart(6) + 's';
-const turns = [];
+const turns = [], spans = [], open = new Map(); let spanFrom = 0, last = '?';
+const labelFor = (a, b) => { const c = {}; for (const s of spans) { const o = Math.min(b, s.end) - Math.max(a, s.start); if (o > 0) c[s.label] = (c[s.label] || 0) + o; } const best = Object.entries(c).sort((x, y) => y[1] - x[1])[0]; return best ? best[0] : last; };
 up.on('event', (ev) => {
   if (ev.type === 'audioProgress') return;
+  if (ev.type === 'speaker') { spans.push({ label: ev.label, start: spanFrom, end: ev.audioProcessedMs }); spanFrom = ev.audioProcessedMs; last = ev.label; }
+  if (ev.type === 'speechStart') { open.set(ev.turnId, ev.audioProcessedMs); spanFrom = Math.max(spanFrom, ev.audioProcessedMs); }
   if (ev.type === 'transcript' && !ev.final) { process.stdout.write(`\r${stamp()} … ${ev.transcript.slice(-70).padEnd(70)}`); return; }
   process.stdout.write('\r' + ' '.repeat(90) + '\r');
-  if (ev.type === 'speechComplete') { turns.push(ev); console.log(`${stamp()} [${ev.speaker ?? ev.speakerLabel ?? '?'}] turn ${ev.turnId}: ${ev.transcript}`); }
+  if (ev.type === 'speechComplete') { const a = open.get(ev.turnId) ?? 0; turns.push(ev); console.log(`${stamp()} [${labelFor(a, ev.audioProcessedMs)}] turn ${ev.turnId} (${(a/1000).toFixed(1)}–${(ev.audioProcessedMs/1000).toFixed(1)}s): ${ev.transcript.trim()}`); }
   else console.log(`${stamp()} ${ev.type}`, JSON.stringify(ev).slice(0, 200));
 });
 up.on('close', ({ code }) => { console.log(`${stamp()} closed ${code}; ${turns.length} turns`); process.exit(0); });

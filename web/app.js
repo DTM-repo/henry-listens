@@ -3,7 +3,16 @@
 const $ = (s) => document.querySelector(s);
 const turnsEl = $('#turns'), liveEl = $('#live'), statusEl = $('#status'), logEl = $('#log'), btn = $('#toggle');
 const ROLE = { A: 'Adviser', B: 'Student' };           // first voice heard = adviser (the demo opens with the adviser speaking)
-const state = { ws: null, ctx: null, stream: null, node: null, running: false, frames: 0, t0: 0, speaker: null, turns: [] };
+const state = { ws: null, ctx: null, stream: null, node: null, running: false, frames: 0, t0: 0, speaker: null, turns: [], open: new Map(), spans: [] };
+// Diarization rule (Meta docs): a `speaker` event labels the audio from the previous speaker event (or speechStart) up to its audioProcessedMs.
+// We keep those spans and give each finished turn the label that covers most of its [start, end]; if none overlaps, the last label seen.
+let spanFrom = 0;
+function labelFor(start, end) {
+  const cover = {};
+  for (const sp of state.spans) { const o = Math.min(end, sp.end) - Math.max(start, sp.start); if (o > 0) cover[sp.label] = (cover[sp.label] || 0) + o; }
+  const best = Object.entries(cover).sort((a, b) => b[1] - a[1])[0];
+  return best ? best[0] : state.speaker;
+}
 
 const setStatus = (t, cls = '') => { statusEl.textContent = t; statusEl.className = cls; };
 const log = (o) => { const d = document.createElement('div'); d.textContent = typeof o === 'string' ? o : JSON.stringify(o); logEl.prepend(d); while (logEl.children.length > 200) logEl.lastChild.remove(); };
@@ -14,8 +23,10 @@ function renderLive(text, sp) {
   liveEl.innerHTML = text ? `<span class="who ${sp || ''}">${label(sp)}</span> ${text}` : '';
 }
 function addTurn(ev) {
-  const sp = ev.speaker ?? ev.speakerLabel ?? state.speaker;
-  const turn = { id: ev.turnId, speaker: sp, text: (ev.transcript || '').trim(), at: ev.audioProcessedMs ?? 0 };
+  const start = state.open.get(ev.turnId) ?? 0, end = ev.audioProcessedMs ?? start;
+  state.open.delete(ev.turnId);
+  const sp = ev.speaker ?? labelFor(start, end);
+  const turn = { id: ev.turnId, speaker: sp, text: (ev.transcript || '').trim(), at: start };
   if (!turn.text) return;
   state.turns.push(turn);
   const el = document.createElement('div');
@@ -29,11 +40,11 @@ function addTurn(ev) {
 function handle(ev) {
   switch (ev.type) {
     case 'relay': setStatus(ev.status === 'ready' ? `listening · ${ev.mode} · ${ev.sessionId.slice(-8)}` : `relay: ${ev.status}${ev.message ? ' — ' + ev.message : ''}`, ev.status === 'ready' ? 'ok' : 'warn'); if (ev.status !== 'ready') log(ev); break;
-    case 'speaker': state.speaker = ev.label ?? ev.speaker; log(ev); break;
-    case 'speechStart': state.speaker = ev.speaker ?? ev.speakerLabel ?? state.speaker; break;
-    case 'transcript': if (!ev.final) renderLive(ev.transcript, ev.speaker ?? ev.speakerLabel ?? state.speaker); break;
+    case 'speaker': state.spans.push({ label: ev.label, start: spanFrom, end: ev.audioProcessedMs }); spanFrom = ev.audioProcessedMs; state.speaker = ev.label; break;
+    case 'speechStart': state.open.set(ev.turnId, ev.audioProcessedMs ?? 0); spanFrom = Math.max(spanFrom, ev.audioProcessedMs ?? 0); break;
+    case 'transcript': if (!ev.final) renderLive(ev.transcript, state.speaker); break;
     case 'speechComplete': addTurn(ev); break;
-    case 'speechEnd': break;
+    case 'speechEnd': case 'audioProgress': break;
     default: log(ev);
   }
 }
