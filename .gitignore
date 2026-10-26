@@ -1,0 +1,6 @@
+node_modules/
+.env
+.env.*
+dist/
+.netlify/
+docs/cases/**/real-*
