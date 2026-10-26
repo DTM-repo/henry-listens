@@ -1,0 +1,16 @@
+{
+  "name": "henry-listens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "An advising appointment becomes the compliance record. Built on Meta Muse (Voice Transcribe + Spark) for the Meta Global AI Developer Hackathon, Oct 26 – Nov 4 2026.",
+  "scripts": {
+    "dev": "node --env-file=.env relay/server.mjs",
+    "test:voice": "node --env-file=.env relay/send-file.mjs"
+  },
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

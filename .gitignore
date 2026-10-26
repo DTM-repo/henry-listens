@@ -1,6 +1,9 @@
 node_modules/
 .env
 .env.*
+!.env.example
 dist/
 .netlify/
 docs/cases/**/real-*
+*.wav
+*.pcm
