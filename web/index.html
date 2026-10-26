@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henry Listens</title>
+<style>
+  :root { --bg:#0f1115; --panel:#171a21; --ink:#e8eaf0; --mute:#8b93a7; --a:#5eb1ff; --b:#ffb86b; --ok:#4cd98a; --warn:#ff7a7a; }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  header { display:flex; gap:16px; align-items:center; padding:14px 20px; border-bottom:1px solid #262a35; flex-wrap:wrap }
+  h1 { font-size:18px; margin:0; font-weight:600 } h1 small { color:var(--mute); font-weight:400; margin-left:8px }
+  button { background:var(--a); color:#06101c; border:0; border-radius:8px; padding:8px 16px; font-weight:600; cursor:pointer }
+  button.stop { background:var(--warn); color:#1c0606 } button.ghost { background:transparent; color:var(--mute); border:1px solid #2b3040 }
+  select { background:var(--panel); color:var(--ink); border:1px solid #2b3040; border-radius:8px; padding:7px 10px }
+  #status { color:var(--mute) } #status.ok { color:var(--ok) } #status.warn { color:var(--warn) }
+  main { max-width:900px; margin:0 auto; padding:20px }
+  #turns .turn { display:grid; grid-template-columns:52px 120px 1fr; gap:10px; padding:8px 0; border-bottom:1px solid #1f2330 }
+  .t { color:var(--mute); font-variant-numeric:tabular-nums } .who { font-weight:600 } .who.A { color:var(--a) } .who.B { color:var(--b) }
+  #live { min-height:2.5em; color:var(--mute); padding:10px 0; font-style:italic }
+  #log { font:12px/1.4 ui-monospace, Menlo, monospace; color:var(--mute); max-height:160px; overflow:auto; background:var(--panel); padding:8px; border-radius:8px; margin-top:24px }
+  .meta { display:flex; gap:16px; color:var(--mute); font-size:13px; margin-left:auto }
+  .note { color:var(--mute); font-size:13px; margin-top:28px }
+</style>
+</head>
+<body>
+<header>
+  <h1>Henry Listens <small>live diarized transcript · Meta Voice Transcribe</small></h1>
+  <select id="mode"><option>DIARIZATION</option><option>ENDPOINTING</option></select>
+  <button id="toggle">Start listening</button>
+  <button id="copy" class="ghost">Copy transcript</button>
+  <span class="meta"><span id="clock">00:00</span><span id="count">0 turns</span></span>
+</header>
+<main>
+  <div id="status">idle</div>
+  <div id="turns"></div>
+  <div id="live"></div>
+  <p class="note">Synthetic demo only. Nothing here is a real student. The first voice heard is labeled Adviser (A), the second Student (B); the relay holds the API key and the browser never sees it.</p>
+  <div id="log"></div>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>
