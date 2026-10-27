@@ -39,3 +39,16 @@ Transcription on screen is dictation and a privacy cringe. The visible product i
 Consequence: the agent runs **after every completed turn** (incremental record, diffed against the previous one so new items animate in), not once at the end.
 
 Revised days: Oct 27 redaction ledger + incremental agent loop (Spark + tools + schema, diff engine). Oct 28 live record stage UI (cards, calendar strip, checklist, indicator). Oct 29 I-20 PDF + evidence drawer + sign-off/export. Rest of the schedule unchanged.
+
+## Oct 26 late (David): setup ritual, shared review, solo mode
+
+**Setup ritual (start of every session).** Henry speaks (browser speech synthesis; Meta has no TTS model) and shows the same text:
+> "This is Henry Listens. Don't mind me. I'll sit in on the meeting and take notes, then give you a complete assessment to take with you. I keep it private: no names, no personal details. I'm here so nothing gets missed and nobody has to take notes. Before we start, let's check the mics. Can each of you introduce yourself as a student, an adviser, or something else?"
+Each voice introduces itself → that voice's diarization label (A/B/C) is bound to a role. If someone says a name, Henry: "I'll just write *student* so we don't keep personal information" — and the name goes into the redaction ledger so every later mention becomes a token. Then: "We're all set. Go ahead. Forget about me. I'm furniture."
+Demo video version ≈ 15 s; the full text lives on screen.
+
+**Shared review (end of session).** Adviser and student click through the record together: each card = confirm / edit / strike. Export (PDFs: case note, student summary, SEVIS checklist) happens only after the adviser signs. This is the "human owns every regulatory sentence" moment.
+
+**Solo prep mode (stretch, Nov 1–2).** Student alone. Same loop; Henry speaks and asks clarifying questions, builds the same record, and hands it to the adviser for the meeting. **Henry gathers, never advises** — no regulatory answers to a student without an adviser present (judges' anti-project list; DSO liability). Positioned as "prep", not "advice".
+
+Card categories (default unless David changes them): Employment, Program end, Travel, Status.
