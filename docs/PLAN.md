@@ -51,4 +51,6 @@ Demo video version ≈ 15 s; the full text lives on screen.
 
 **Solo prep mode (stretch, Nov 1–2).** Student alone. Same loop; Henry speaks and asks clarifying questions, builds the same record, and hands it to the adviser for the meeting. **Henry gathers, never advises** — no regulatory answers to a student without an adviser present (judges' anti-project list; DSO liability). Positioned as "prep", not "advice".
 
-Card categories (default unless David changes them): Employment, Program end, Travel, Status.
+Card categories: Employment, **Enrollment** (course load, online-course limit, reduced course load — "comes up ALL the time"), Program end, Travel, Status. OPEN: David to list the others that recur (Todoist reminder set 10/26).
+
+Henry's voice: browser speech synthesis is acceptable for the short setup lines in the main product; if Solo prep mode is built it needs a real TTS voice (not stretch-quality). Stretch only if time-rich at the end.
