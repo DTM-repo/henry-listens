@@ -15,3 +15,7 @@
 3:00 End.
 
 Rules check: everything shown was built in the hackathon; HenryKnows is named as an external service.
+
+
+## Visual concept (Oct 26 pivot)
+What the camera sees is never a transcript. It sees the stage: Henry's listening mark pulses, the student says "internship" and an Employment card slides in, a citation pins to it, the calendar strip grows a summer block, the checklist gains "Department sign-off — adviser — before start date". The evidence drawer opens once, for two seconds, to show the redacted transcript with STUDENT_A where the name was. Close on the signed record.

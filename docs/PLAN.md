@@ -25,3 +25,17 @@ Judging: Impact 30 · Meta tooling 25 · Technical depth 20 · Demo 25. Bonus ta
 - Which X account posts the demo (identity rule). HenryKnows account vs personal.
 - Whether to request Modal credit (his form; needed for the relay + Glimmer).
 - Team: solo.
+
+
+## Pivot, Oct 26 evening (David): the demo must show the record building itself
+
+Transcription on screen is dictation and a privacy cringe. The visible product is the **live record stage**:
+- **Issue cards** surface as the conversation raises them, get a HenryKnows citation a beat later, then settle into categories (Employment, Program end, Travel, Status).
+- **Calendar strip**: dates the student states land as markers; windows (OPT 90-day, CPT dates, grace period) draw themselves around them. Agent never computes a date; `compute_dates` does.
+- **SEVIS checklist** fills in with deadline + owner as the adviser commits to actions.
+- **Listening indicator** (waveform / breathing mark) so it is obvious Henry is live.
+- The transcript becomes an **Evidence drawer**: closed by default; when opened it shows the *redacted* text (tokens in place of name/IDs).
+
+Consequence: the agent runs **after every completed turn** (incremental record, diffed against the previous one so new items animate in), not once at the end.
+
+Revised days: Oct 27 redaction ledger + incremental agent loop (Spark + tools + schema, diff engine). Oct 28 live record stage UI (cards, calendar strip, checklist, indicator). Oct 29 I-20 PDF + evidence drawer + sign-off/export. Rest of the schedule unchanged.
