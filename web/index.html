@@ -5,40 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Henry Listens</title>
 <style>
-  :root { --bg:#0f1115; --panel:#171a21; --ink:#e8eaf0; --mute:#8b93a7; --a:#5eb1ff; --b:#ffb86b; --ok:#4cd98a; --warn:#ff7a7a; }
-  * { box-sizing:border-box }
-  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  header { display:flex; gap:16px; align-items:center; padding:14px 20px; border-bottom:1px solid #262a35; flex-wrap:wrap }
-  h1 { font-size:18px; margin:0; font-weight:600 } h1 small { color:var(--mute); font-weight:400; margin-left:8px }
-  button { background:var(--a); color:#06101c; border:0; border-radius:8px; padding:8px 16px; font-weight:600; cursor:pointer }
-  button.stop { background:var(--warn); color:#1c0606 } button.ghost { background:transparent; color:var(--mute); border:1px solid #2b3040 }
-  select { background:var(--panel); color:var(--ink); border:1px solid #2b3040; border-radius:8px; padding:7px 10px }
-  #status { color:var(--mute) } #status.ok { color:var(--ok) } #status.warn { color:var(--warn) }
-  main { max-width:900px; margin:0 auto; padding:20px }
-  #turns .turn { display:grid; grid-template-columns:52px 120px 1fr; gap:10px; padding:8px 0; border-bottom:1px solid #1f2330 }
-  .t { color:var(--mute); font-variant-numeric:tabular-nums } .who { font-weight:600 } .who.A { color:var(--a) } .who.B { color:var(--b) }
-  #live { min-height:2.5em; color:var(--mute); padding:10px 0; font-style:italic }
-  #log { font:12px/1.4 ui-monospace, Menlo, monospace; color:var(--mute); max-height:160px; overflow:auto; background:var(--panel); padding:8px; border-radius:8px; margin-top:24px }
-  .meta { display:flex; gap:16px; color:var(--mute); font-size:13px; margin-left:auto }
-  #meter { display:inline-block; width:80px; height:8px; background:#262a35; border-radius:4px; overflow:hidden; vertical-align:middle } #level { display:block; height:100%; width:0; background:var(--ok); transition:width .1s }
-  .note { color:var(--mute); font-size:13px; margin-top:28px }
+  :root { --bg:#0e1014; --panel:#161922; --panel2:#1c2029; --ink:#e9ebf1; --mute:#8c94a8; --line:#262b38; --ok:#4cd98a; --warn:#ff7a7a; --accent:#7aa7ff;
+    --Employment:#f6b26b; --Enrollment:#8fd3ff; --Program_end:#c9a0ff; --Travel:#7fe3c6; --Status:#ff9db0; --Other:#b8bfcf; }
+  * { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif }
+  header { display:flex; gap:14px; align-items:center; padding:12px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap }
+  h1 { font-size:17px; margin:0; font-weight:650 } h1 small { color:var(--mute); font-weight:400; margin-left:8px }
+  button { background:var(--accent); color:#06101c; border:0; border-radius:8px; padding:8px 16px; font-weight:600; cursor:pointer } button.stop { background:var(--warn); color:#1c0606 } button.ghost { background:transparent; color:var(--mute); border:1px solid var(--line) }
+  #status { color:var(--mute); font-size:13px } #status.ok { color:var(--ok) } #status.warn { color:var(--warn) }
+  .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--mute); font-size:13px }
+  #meter { display:inline-block; width:70px; height:8px; background:var(--line); border-radius:4px; overflow:hidden } #level { display:block; height:100%; width:0; background:var(--ok); transition:width .1s }
+  main { display:grid; grid-template-columns:1fr 340px; gap:18px; padding:18px 20px; max-width:1300px; margin:0 auto }
+  @media (max-width:900px) { main { grid-template-columns:1fr } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px } section h2 { margin:0 0 10px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--mute) }
+  .empty { color:var(--mute); font-style:italic }
+  /* Henry */
+  #henry { display:flex; gap:14px; align-items:flex-start; grid-column:1/-1 }
+  #henry-mark { width:46px; height:46px; border-radius:50%; background:radial-gradient(circle at 35% 35%, #9ec1ff, #3b63c4 70%); box-shadow:0 0 0 0 rgba(122,167,255,.5); flex:none; transition:box-shadow .3s }
+  #henry-mark.hearing { animation:breathe 1.2s ease-in-out infinite } #henry-mark.busy { animation:spin 1.1s linear infinite; background:conic-gradient(from 0deg,#9ec1ff,#3b63c4,#9ec1ff) }
+  @keyframes breathe { 0%,100% { box-shadow:0 0 0 0 rgba(122,167,255,.45) } 50% { box-shadow:0 0 0 14px rgba(122,167,255,0) } } @keyframes spin { to { transform:rotate(360deg) } }
+  #henry-says { font-size:16px; line-height:1.55 } #roles { color:var(--mute); font-size:13px; margin-top:4px }
+  /* cards */
+  #cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px }
+  .card { background:var(--panel2); border:1px solid var(--line); border-left:4px solid var(--Other); border-radius:10px; padding:12px 14px; transition:transform .5s, opacity .5s } .card.enter { transform:translateY(18px) scale(.97); opacity:0 } .card.pulse { box-shadow:0 0 0 3px rgba(122,167,255,.35) }
+  .card .cat { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--mute) } .card h3 { margin:4px 0 6px; font-size:15px } .card p { margin:0 0 8px; color:#c9cfdd; font-size:13.5px }
+  .card[data-id] { border-left-color:var(--Other) }
+  .cites { display:flex; flex-wrap:wrap; gap:6px } .cite { font-size:12px; background:#23314d; color:#bcd2ff; padding:2px 8px; border-radius:999px; text-decoration:none } .cite.none { background:#3a2a2a; color:#f0b0b0 }
+  .st { margin-top:8px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute) } .st.resolved { color:var(--ok) } .st.needs_followup { color:var(--Employment) }
+  /* timeline */
+  #timeline { position:relative; padding-top:6px } .tl-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:center; margin:6px 0 } .tl-track { height:10px; background:var(--line); border-radius:5px; position:relative } .tl-bar { position:absolute; top:0; height:100%; background:var(--accent); border-radius:5px; min-width:4px; animation:grow .7s ease-out } .tl-bar.mark { background:var(--Program_end) } .tl-bar.stated { background:var(--mute) }
+  @keyframes grow { from { transform:scaleX(0); transform-origin:left } } .tl-label { font-size:13px } .dim { color:var(--mute) } .tl-today { position:absolute; top:0; bottom:0; width:1px; background:var(--ok); opacity:.6 }
+  /* checklist */
+  #checklist, #questions { margin:0; padding-left:0; list-style:none } #checklist li, #questions li { padding:6px 0; border-bottom:1px solid var(--line); font-size:14px } .owner { font-size:11px; text-transform:uppercase; letter-spacing:.06em; padding:1px 6px; border-radius:4px; background:var(--line); margin-right:6px } .owner.adviser { color:var(--accent) } .owner.student { color:var(--Employment) } .dl { color:var(--mute); font-size:12px; margin-left:6px }
+  /* activity */
+  #activity { font:12px/1.5 ui-monospace,Menlo,monospace; color:var(--mute) } .act.tool { color:#bcd2ff } .act.error { color:var(--warn) }
+  /* drawer */
+  #drawer { position:fixed; right:0; top:0; bottom:0; width:min(520px,100%); background:var(--panel); border-left:1px solid var(--line); transform:translateX(100%); transition:transform .3s; padding:18px; overflow:auto; z-index:5 } body.drawer-open #drawer { transform:none }
+  #transcript .turn { display:grid; grid-template-columns:48px 70px 1fr; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); font-size:14px } .turn .t { color:var(--mute); font-variant-numeric:tabular-nums } .turn .who { font-weight:600 } .turn.adviser .who { color:var(--accent) } .turn.student .who { color:var(--Employment) } mark { background:#2b3a5a; color:#cfe0ff; border-radius:3px; padding:0 3px }
+  #live { color:var(--mute); font-style:italic; min-height:1.5em; font-size:13px }
+  .note { color:var(--mute); font-size:12.5px; grid-column:1/-1 }
+  label.sw { color:var(--mute); font-size:13px; display:flex; gap:6px; align-items:center }
 </style>
 </head>
-<body>
+<body data-phase="idle">
 <header>
-  <h1>Henry Listens <small>live diarized transcript · Meta Voice Transcribe</small></h1>
-  <select id="mode"><option>DIARIZATION</option><option>ENDPOINTING</option></select>
-  <button id="toggle">Start listening</button>
-  <button id="copy" class="ghost">Copy transcript</button>
-  <span class="meta"><span id="meter"><span id="level"></span></span><span id="clock">00:00</span><span id="count">0 turns</span></span>
+  <h1>Henry Listens <small>an advising appointment becomes the compliance record</small></h1>
+  <button id="toggle">Start</button>
+  <button id="begin" class="ghost" style="display:none">Skip intro</button>
+  <label class="sw"><input type="checkbox" id="mute"> mute Henry</label>
+  <span id="status">idle</span>
+  <span class="meta"><span id="meter"><span id="level"></span></span><span id="clock">00:00</span><span id="usage"></span><button id="drawer-toggle" class="ghost">Evidence</button><button id="export" class="ghost">Export</button></span>
 </header>
 <main>
-  <div id="status">idle</div>
-  <div id="turns"></div>
-  <div id="live"></div>
-  <p class="note">Synthetic demo only. Nothing here is a real student. The first voice heard is labeled Adviser (A), the second Student (B); the relay holds the API key and the browser never sees it.</p>
-  <div id="log"></div>
+  <section id="henry"><div id="henry-mark"></div><div><div id="henry-says">Press Start when everyone is in the room.</div><div id="roles"></div><div id="live"></div></div></section>
+  <section id="stage"><h2>Issues raised</h2><div id="cards-empty" class="empty">Cards appear as issues come up.</div><div id="cards"></div></section>
+  <aside>
+    <section><h2>Dates</h2><div id="timeline"></div></section>
+    <section style="margin-top:14px"><h2>SEVIS checklist</h2><ul id="checklist"></ul></section>
+    <section style="margin-top:14px"><h2>Still to confirm</h2><ul id="questions"></ul></section>
+    <section style="margin-top:14px"><h2>Henry is doing</h2><div id="activity"></div></section>
+  </aside>
+  <p class="note">Synthetic demo. No real student. Names and ID numbers are replaced in code before any model sees a word; the relay holds the API key; every regulatory sentence links to a HenryKnows source; every date comes from compute_dates. Meta Muse Voice Transcribe + Spark 1.3.</p>
 </main>
+<div id="drawer"><h2 style="margin-top:0">Evidence — redacted transcript <span id="turn-count" style="color:var(--mute);font-weight:400;font-size:13px"></span></h2><div id="transcript"></div></div>
+<script>
+  // category colors by data attribute (set after render)
+  new MutationObserver(() => document.querySelectorAll('.card').forEach((c) => { const cat = c.querySelector('.cat')?.textContent.replace(' ', '_'); if (cat) c.style.borderLeftColor = `var(--${cat})`; })).observe(document.body, { subtree: true, childList: true, characterData: true });
+</script>
 <script src="/app.js"></script>
 </body>
 </html>

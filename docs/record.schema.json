@@ -1,8 +1,39 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["case_note", "student_summary", "sevis_checklist", "open_questions"],
+  "required": ["cards", "timeline", "case_note", "student_summary", "sevis_checklist", "open_questions"],
   "properties": {
+    "cards": {
+      "description": "Issues raised in the meeting, one card each. Stable ids so a card can be updated across turns.",
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "category", "title", "status", "detail", "citations"],
+        "properties": {
+          "id": { "type": "string", "description": "snake_case, stable across turns, e.g. cpt_summer_internship" },
+          "category": { "type": "string", "enum": ["Employment", "Enrollment", "Program end", "Travel", "Status", "Other"] },
+          "title": { "type": "string", "description": "Under 8 words" },
+          "status": { "type": "string", "enum": ["raised", "resolved", "needs_followup"] },
+          "detail": { "type": "string", "description": "One or two sentences: what was said and what the adviser decided. No names." },
+          "citations": { "type": "array", "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["claim", "citation", "source_url"],
+            "properties": {
+              "claim": { "type": "string" },
+              "citation": { "type": "string", "description": "e.g. 8 CFR 214.2(f)(10)(i) or the guidance title" },
+              "source_url": { "type": "string", "description": "url returned by search_sources; never invented. \"\" if none found." }
+            } } }
+        } } },
+    "timeline": {
+      "description": "Dates and windows. Every entry comes from compute_dates output or a date the student stated verbatim.",
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["start", "end", "label", "source"],
+        "properties": {
+          "start": { "type": "string", "description": "ISO date" },
+          "end": { "type": "string", "description": "ISO date, or same as start for a single marker" },
+          "label": { "type": "string" },
+          "source": { "type": "string", "description": "compute_dates rule id, or \"stated\" for a date the student said" }
+        } } },
     "case_note": {
       "type": "object", "additionalProperties": false,
       "required": ["facts_stated_by_student", "advice_given", "regulatory_basis"],
@@ -11,11 +42,11 @@
         "advice_given": { "type": "array", "items": { "type": "string" } },
         "regulatory_basis": { "type": "array", "items": {
           "type": "object", "additionalProperties": false,
-          "required": ["claim", "citation", "source_id"],
+          "required": ["claim", "citation", "source_url"],
           "properties": {
             "claim": { "type": "string" },
-            "citation": { "type": "string", "description": "e.g. 8 CFR 214.2(f)(10)(i)" },
-            "source_id": { "type": "string", "description": "HenryKnows source id returned by search_sources; never invented" }
+            "citation": { "type": "string" },
+            "source_url": { "type": "string", "description": "url returned by search_sources; never invented" }
           } } }
       }
     },

@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { WebSocketServer } from 'ws';
 import { AsrUpstream } from './asr-upstream.mjs';
+import { Session } from './session.mjs';
 
 const PORT = Number(process.env.RELAY_PORT || 8787);
 const KEY = process.env.MODEL_API_KEY;
@@ -33,9 +34,24 @@ wss.on('connection', async (client, req) => {
   const send = (o) => { if (client.readyState === client.OPEN) client.send(JSON.stringify(o)); };
   log('browser connected, mode', mode);
 
+  const session = new Session({ key: KEY, log });
+  session.on('out', (o) => send(o));
+  // speaker attribution (Meta rule: a speaker event labels the audio behind it, back to the previous speaker event / speechStart)
+  const spans = [], open = new Map(); let spanFrom = 0, last = null;
+  const labelFor = (a, b) => { const c = {}; for (const s of spans) { const o = Math.min(b, s.end) - Math.max(a, s.start); if (o > 0) c[s.label] = (c[s.label] || 0) + o; } const best = Object.entries(c).sort((x, y) => y[1] - x[1])[0]; return best ? best[0] : last; };
+
   const up = new AsrUpstream({ key: KEY, mode });
-  up.on('event', (ev) => send(ev));
-  up.on('close', ({ code, reason }) => { log('upstream closed', code, reason || ''); send({ type: 'relay', status: 'upstream_closed', code, reason, sentMs: Math.round(up.sentMs) }); client.close(1000); });
+  up.on('event', (ev) => {
+    if (ev.type === 'audioProgress') return;
+    if (ev.type === 'speaker') { spans.push({ label: ev.label, start: spanFrom, end: ev.audioProcessedMs }); spanFrom = ev.audioProcessedMs; last = ev.label; }
+    if (ev.type === 'speechStart') { open.set(ev.turnId, ev.audioProcessedMs); spanFrom = Math.max(spanFrom, ev.audioProcessedMs); }
+    if (ev.type === 'speechComplete') { const a = open.get(ev.turnId) ?? 0; open.delete(ev.turnId); session.addTurn({ label: labelFor(a, ev.audioProcessedMs), text: ev.transcript, start: a, end: ev.audioProcessedMs }); return; }
+    if (ev.type === 'transcript' && !ev.final) { send({ type: 'partial', text: ev.transcript, role: session.roleOf(last) }); return; }
+    if (ev.type === 'speechStart' || ev.type === 'speechEnd') send({ type: ev.type, turnId: ev.turnId });
+  });
+  up.on('close', ({ code, reason }) => { log('upstream closed', code, reason || ''); send({ type: 'relay', status: 'upstream_closed', code, reason, sentMs: Math.round(up.sentMs) }); session.end();
+    // keep the browser socket open until the agent finishes its last pass
+    const wait = () => (session.agent.running || session.agent.pending) ? setTimeout(wait, 500) : client.close(1000); wait(); });
   up.on('error', (e) => { log('upstream error', e?.message || e); send({ type: 'relay', status: 'upstream_error' }); });
 
   try {
@@ -48,7 +64,8 @@ wss.on('connection', async (client, req) => {
   client.on('message', (data, isBinary) => {
     if (isBinary) { dump?.write(data); return up.sendAudio(data); }
     let msg; try { msg = JSON.parse(String(data)); } catch { return; }
-    if (msg.type === 'end') { log('browser ended stream after', Math.round(up.sentMs), 'ms audio'); up.end(); }
+    if (msg.type === 'end') { log('browser ended stream after', Math.round(up.sentMs), 'ms audio'); up.end(); session.end(); }
+    if (msg.type === 'begin') session.begin();
   });
   client.on('close', () => { log('browser closed'); dump?.end(); up.closed ? null : up.end(); setTimeout(() => up.abort(), 3000); });
 });
