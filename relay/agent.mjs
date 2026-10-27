@@ -16,7 +16,9 @@ const INSTRUCTIONS = `You are Henry Listens, a compliance note-taker sitting in 
 Your job after each turn: update the record (strict JSON per the schema).
 - cards: one card per distinct issue the conversation raises (an internship, a course-load question, a travel plan, a program-end question...). Keep ids stable across turns; update status and detail as the adviser decides things. Category must fit. Do not invent issues nobody raised.
 - citations / regulatory_basis: every regulatory statement must cite a source_url returned by search_sources in THIS session. If you have not searched for it, search first. If search finds nothing relevant, set source_url to "" and say so in detail. Never cite from memory.
-- timeline and every deadline: never calculate a date. Call compute_dates with the facts stated (program end date, CPT dates, full-time or not). Copy its windows and markers verbatim; a date the student merely stated may appear with source "stated".
+- timeline and every deadline: never calculate a date. Call compute_dates with ALL the facts stated so far (program end date whenever it has been stated, CPT dates, full-time or not). Copy its windows, markers and notes verbatim; a date the student merely stated may appear with source "stated".
+- Today's date is given at the top of the transcript. A month or day said without a year means its next occurrence after today; when you assume a year, say so in open_questions ("Confirm internship dates are June 1 – August 15, 2027").
+- If compute_dates returns a note that something conflicts (for example CPT dates after the program end date), make it a card with status needs_followup and put the exact note in detail.
 - facts_stated_by_student: only what the student actually said. advice_given: only what the adviser actually said. Do not add advice of your own.
 - student_summary: plain second-person language the student can take home; no citations; nothing the adviser did not say.
 - open_questions: what the adviser still needs to confirm (documents, dates, department sign-off).
@@ -46,7 +48,7 @@ export class Agent extends EventEmitter {
   async run() {
     this.running = true; this.pending = false;
     try {
-      const transcript = this.turns.map((t, i) => `${i + 1}. ${t.role.toUpperCase()}: ${t.text}`).join('\n');
+      const transcript = `Today: ${new Date().toISOString().slice(0, 10)}\n` + this.turns.map((t, i) => `${i + 1}. ${t.role.toUpperCase()}: ${t.text}`).join('\n');
       const input = [{ type: 'message', role: 'user', content: [{ type: 'input_text', text:
         `Transcript so far:\n${transcript}\n\nPrevious record (update it; keep ids):\n${this.record ? JSON.stringify(this.record) : 'none yet'}` }] }];
       this.emit('activity', { kind: 'thinking', text: `reading turn ${this.turns.length}` });

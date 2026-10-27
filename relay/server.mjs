@@ -15,10 +15,14 @@ const KEY = process.env.MODEL_API_KEY;
 if (!KEY) { console.error('MODEL_API_KEY missing (put it in .env; see .env.example)'); process.exit(1); }
 
 const WEB = path.resolve(import.meta.dirname, '..', 'web');
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.webm': 'audio/webm', '.wav': 'audio/wav', '.mp3': 'audio/mpeg' };
 
+const VOICE = path.join(WEB, 'voice'); fs.mkdirSync(VOICE, { recursive: true });
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
+  if (req.method === 'PUT' && /^\/voice\/(open|name|go|review)\.webm$/.test(url.pathname)) {   // save a recorded Henry line
+    const chunks = []; req.on('data', (c) => chunks.push(c)); req.on('end', () => { fs.writeFileSync(path.join(VOICE, path.basename(url.pathname)), Buffer.concat(chunks)); res.writeHead(204); res.end(); console.log('saved', url.pathname, Buffer.concat(chunks).length, 'bytes'); }); return;
+  }
   let file = path.join(WEB, url.pathname === '/' ? 'index.html' : url.pathname);
   if (!file.startsWith(WEB) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('not found'); }
   res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });

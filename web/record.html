@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Record Henry's lines</title>
+<style>
+  body { margin:0; background:#0e1014; color:#e9ebf1; font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif } main { max-width:760px; margin:0 auto; padding:28px 20px }
+  h1 { font-size:20px } p.hint { color:#8c94a8 } .line { background:#161922; border:1px solid #262b38; border-radius:12px; padding:16px 18px; margin:14px 0 }
+  .line .text { font-size:18px; margin-bottom:12px } button { background:#7aa7ff; color:#06101c; border:0; border-radius:8px; padding:8px 16px; font-weight:600; cursor:pointer; margin-right:8px } button.rec { background:#ff7a7a } button.ghost { background:transparent; color:#8c94a8; border:1px solid #262b38 } .ok { color:#4cd98a; margin-left:8px } .st { color:#8c94a8; font-size:13px; margin-top:6px }
+</style></head>
+<body><main>
+<h1>Record Henry's lines</h1>
+<p class="hint">Press Record, read the line in your natural voice, press Stop. Play it back; re-record until you like it. Each line saves into the app the moment you stop. Leave a short pause before and after.</p>
+<div id="lines"></div>
+<p class="hint">Then open <a href="/" style="color:#7aa7ff">the stage</a> and press Start: Henry will speak in your voice.</p>
+</main>
+<script>
+const LINES = {
+  open: "This is Henry Listens. Don't mind me. I'll sit in on the meeting and take notes, then give you a complete assessment to take with you. I keep it private: no names, no personal details. I'm here so nothing gets missed and nobody has to take notes. Before we start, let's check the mics. Could each of you introduce yourself as a student, an adviser, or something else?",
+  name: "I'll just write 'student' so we don't keep personal information.",
+  go: "We're all set. Go ahead. Forget about me. I'm furniture.",
+  review: "Here is what I have. Walk through it together; nothing leaves until the adviser signs.",
+};
+let stream, rec, chunks, current;
+const wrap = document.querySelector('#lines');
+for (const [id, text] of Object.entries(LINES)) {
+  const d = document.createElement('div'); d.className = 'line'; d.innerHTML = `<div class="text">${text}</div><button data-rec="${id}">Record</button><button class="ghost" data-play="${id}">Play</button><span class="ok" id="ok-${id}"></span><div class="st" id="st-${id}"></div>`; wrap.append(d);
+  fetch(`/voice/${id}.webm`, { method: 'HEAD' }).then((r) => { if (r.ok) document.querySelector('#ok-' + id).textContent = '✓ recorded'; });
+}
+document.addEventListener('click', async (e) => {
+  const id = e.target.dataset.rec, pid = e.target.dataset.play;
+  if (pid) { new Audio(`/voice/${pid}.webm?v=${Date.now()}`).play(); return; }
+  if (!id) return;
+  if (rec && rec.state === 'recording') { rec.stop(); return; }
+  stream ||= await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true } });
+  chunks = []; current = id; rec = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+  rec.ondataavailable = (ev) => chunks.push(ev.data);
+  rec.onstop = async () => { e.target.textContent = 'Record'; e.target.className = ''; const blob = new Blob(chunks, { type: 'audio/webm' }); const r = await fetch(`/voice/${current}.webm`, { method: 'PUT', body: blob }); document.querySelector('#ok-' + current).textContent = r.ok ? '✓ saved' : 'save failed'; document.querySelector('#st-' + current).textContent = `${(blob.size / 1024).toFixed(0)} KB`; };
+  rec.start(); e.target.textContent = 'Stop'; e.target.className = 'rec';
+});
+</script></body></html>

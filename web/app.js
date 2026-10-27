@@ -9,11 +9,14 @@ const RITUAL = {
   open: "This is Henry Listens. Don't mind me. I'll sit in on the meeting and take notes, then give you a complete assessment to take with you. I keep it private: no names, no personal details. I'm here so nothing gets missed and nobody has to take notes. Before we start, let's check the mics. Could each of you introduce yourself as a student, an adviser, or something else?",
   name: "I'll just write 'student' so we don't keep personal information.",
   go: "We're all set. Go ahead. Forget about me. I'm furniture.",
+  review: "Here is what I have. Walk through it together; nothing leaves until the adviser signs.",
 };
-function speak(text) {
-  $('#henry-says').textContent = text;
-  if (!('speechSynthesis' in window) || $('#mute').checked) return Promise.resolve();
-  return new Promise((res) => { const u = new SpeechSynthesisUtterance(text); u.rate = 1.02; u.onend = res; u.onerror = res; speechSynthesis.cancel(); speechSynthesis.speak(u); });
+// Henry's voice = recorded lines in /voice/<id>.webm (record them at /record.html). Text always shows; audio plays if the file exists.
+let henryAudio = null;
+function speak(id) {
+  const text = RITUAL[id] || id; $('#henry-says').textContent = text;
+  if ($('#mute').checked || !RITUAL[id]) return Promise.resolve();
+  return new Promise((res) => { try { henryAudio?.pause(); } catch {} const a = new Audio(`/voice/${id}.webm?v=${Date.now()}`); henryAudio = a; a.onended = res; a.onerror = res; a.play().catch(res); });
 }
 const setStatus = (t, cls = '') => { $('#status').textContent = t; $('#status').className = cls; };
 const mmss = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
@@ -68,9 +71,9 @@ function activity(a) {
 // ---------- events from the relay ----------
 async function handle(ev) {
   switch (ev.type) {
-    case 'relay': if (ev.status === 'ready') { setStatus('listening', 'ok'); if (state.phase === 'idle') { state.phase = 'intro'; speak(RITUAL.open); } } else setStatus(`relay: ${ev.status}`, 'warn'); break;
-    case 'role_bound': state.roles[ev.label] = ev.role; $('#roles').textContent = Object.values(state.roles).map((r) => ROLE_LABEL[r] || r).join(' · '); if (ev.said_name) speak(RITUAL.name); break;
-    case 'phase': state.phase = ev.phase; $('body').dataset.phase = ev.phase; if (ev.phase === 'meeting') speak(RITUAL.go); if (ev.phase === 'review') { setStatus('meeting over — finishing the record', 'ok'); $('#henry-says').textContent = 'Here is what I have. Walk through it together; nothing leaves until the adviser signs.'; } break;
+    case 'relay': if (ev.status === 'ready') { setStatus('listening', 'ok'); if (state.phase === 'idle') { state.phase = 'intro'; speak('open'); } } else setStatus(`relay: ${ev.status}`, 'warn'); break;
+    case 'role_bound': state.roles[ev.label] = ev.role; $('#roles').textContent = Object.values(state.roles).map((r) => ROLE_LABEL[r] || r).join(' · '); if (ev.said_name) speak('name'); break;
+    case 'phase': state.phase = ev.phase; $('body').dataset.phase = ev.phase; if (ev.phase === 'meeting') speak('go'); if (ev.phase === 'review') { setStatus('meeting over — finishing the record', 'ok'); speak('review'); } break;
     case 'partial': $('#live').textContent = ev.text ? `${ROLE_LABEL[ev.role] || ev.role}: ${ev.text}` : ''; break;
     case 'turn': state.turns.push(ev); renderTranscript(); $('#live').textContent = ''; break;
     case 'activity': activity(ev); break;
