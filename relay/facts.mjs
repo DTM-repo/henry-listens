@@ -11,6 +11,7 @@ const dayNum = (d, w) => d ? +d : ORD[w] ?? (w?.startsWith('twenty') ? 20 + ORD[
 /** Find "May 15th, 2027" / "May fifteenth 2027" / "May 2027" / "May 15" (year inferred: next occurrence after today). */
 function findDates(text, today) {
   const out = [];
+  text = text.replace(new RegExp(`\\b(${MON})\\s+\\1\\b`, 'gi'), '$1');   // transcription stutter: "August August 15th" → "August 15th"
   const re = new RegExp(`\\b${MON}(?:\\s+(?:${DAY}))?(?:,?\\s+(?:of\\s+)?(20\\d{2}))?\\b`, 'gi');
   let m;
   while ((m = re.exec(text))) {
