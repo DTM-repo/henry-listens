@@ -45,6 +45,8 @@ export class Session extends EventEmitter {
     this.emit('out', { type: 'turn', ...turn });
     if (this.phase === 'meeting') {
       // code first: the moment a date is spoken, compute what follows from it and show it; the agent confirms later
+      // the I-20 came in before the student stated the program end date: compare now that it has been said
+      if (this.i20 && this.i20.matches === null && this.i20.program_end) { const probe = new Facts(); probe.learn(turn.role, red); const stated = probe.f.program_end; if (stated) { const onForm = this.i20.program_end; const matches = stated.length === 7 ? onForm.startsWith(stated) : onForm === stated; this.i20.matches = matches; this.i20.stated = stated; this.emit('out', { type: 'i20', stage: 'read', fields: this.i20, boxes: this.i20.boxes, matches, stated }); this.log('I-20 vs stated:', onForm, stated, 'matches:', matches); } }
       if (this.facts.learn(turn.role, red)) { try { const dates = computeDates(this.facts.args()); this.emit('out', { type: 'dates', ...dates, hint: this.facts.hint() }); this.log('dates:', this.facts.hint()); } catch (e) { this.log('dates error', e.message); } }
       this.agent.hint = this.facts.hint();
       this.agent.addTurn(turn.role, red);
