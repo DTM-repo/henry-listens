@@ -223,7 +223,7 @@ async function start() {
   try { state.ctx = new AudioContext({ sampleRate: 24000 }); } catch { state.ctx = new AudioContext(); }
   await state.ctx.audioWorklet.addModule('/pcm-worklet.js');
   let src;
-  if (replay) { const blob = await (await fetch(replay)).blob(); state.audio = new Audio(URL.createObjectURL(blob)); /* fully loaded first: a network stall mid-file starves the ASR stream ("ingress below real-time") */ src = state.ctx.createMediaElementSource(state.audio); src.connect(state.ctx.destination); state.audio.onended = () => setTimeout(() => stop(), 1500); }
+  if (replay) { const blob = await (await fetch(replay)).blob(); state.audio = new Audio(URL.createObjectURL(blob)); /* fully loaded first: a network stall mid-file starves the ASR stream ("ingress below real-time") */ src = state.ctx.createMediaElementSource(state.audio); src.connect(state.ctx.destination); state.audio.onended = () => setTimeout(() => stop(), 1500); state.audio.ontimeupdate = () => { $('#clock').textContent = mmss(state.audio.currentTime * 1000); }; }
   else { setStatus('asking for microphone…'); state.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } }); src = state.ctx.createMediaStreamSource(state.stream); }
   state.node = new AudioWorkletNode(state.ctx, 'pcm-frames'); src.connect(state.node);
   setStatus('connecting to Henry…');

@@ -85,7 +85,7 @@ wss.on('connection', async (client, req) => {
     if (ev.type === 'speaker') { spans.push({ label: ev.label, start: spanFrom, end: ev.audioProcessedMs }); spanFrom = ev.audioProcessedMs; last = ev.label; }
     if (ev.type === 'speechStart') { open.set(ev.turnId, ev.audioProcessedMs); spanFrom = Math.max(spanFrom, ev.audioProcessedMs); }
     if (ev.type === 'speechComplete') { const a = open.get(ev.turnId) ?? 0; open.delete(ev.turnId); session.addTurn({ label: labelFor(a, ev.audioProcessedMs), text: ev.transcript, start: a, end: ev.audioProcessedMs }); return; }
-    if (ev.type === 'transcript' && !ev.final) { const r = session.redactor.redact(ev.transcript); send({ type: 'partial', text: typeof r === 'string' ? r : r.text, role: session.roleOf(last) }); return; }   // partials are redacted too: the room never sees an ID either
+    if (ev.type === 'transcript' && !ev.final) { if (session.phase === 'intro') return; send({ type: 'partial', text: session.redactor.preview(ev.transcript), role: session.roleOf(last) }); return; }   // partials: redacted without minting; none during the intro (the name is learned only when that turn completes)   // partials are redacted too: the room never sees an ID either
     if (ev.type === 'speechStart' || ev.type === 'speechEnd') send({ type: ev.type, turnId: ev.turnId });
   });
   up.on('close', ({ code, reason }) => { log('upstream closed', code, reason || ''); send({ type: 'relay', status: 'upstream_closed', code, reason, sentMs: Math.round(up.sentMs) }); session.end();
@@ -108,12 +108,13 @@ wss.on('connection', async (client, req) => {
     // server-side replay: the relay paces the recording into Voice Transcribe itself (the browser only plays it for the room), so
     // the transcription stream never depends on the browser's audio clock ("ingress below real-time" in headless or throttled tabs)
     if (msg.type === 'replay' && !feed) {
-      const file = path.join(WEB, String(msg.src || '')); if (!file.startsWith(WEB) || !fs.existsSync(file)) return;
+      const file = path.join(WEB, String(msg.src || '')); if (!file.startsWith(WEB) || !/\.wav$/i.test(file) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) return;
       const buf = fs.readFileSync(file); let pos = 12; let start = -1;   // RIFF/WAVE: walk the chunks to the PCM16 mono 24 kHz data
       while (pos + 8 <= buf.length) { const cid = buf.toString('ascii', pos, pos + 4), len = buf.readUInt32LE(pos + 4); if (cid === 'data') { start = pos + 8; break; } pos += 8 + len + (len & 1); }
       if (start < 0) return; let i = start, sent = 0; const tf = Date.now(), SIL = Buffer.alloc(3840); log('replay feed', path.basename(file), Math.round((buf.length - start) / 48), 'ms');
       // paced by the wall clock (not timer drift): silence until the browser starts playback, then the file, 80 ms per frame
-      feed = setInterval(() => { const due = Math.floor((Date.now() - tf) / 80); while (sent < due) { if (!feedStarted) up.sendAudio(SIL); else if (i < buf.length) { up.sendAudio(buf.subarray(i, Math.min(i + 3840, buf.length))); i += 3840; } else { clearInterval(feed); feed = null; log('replay feed done'); up.end(); session.end(); return; } sent++; } }, 40);
+      let tail = 0;   // ~1.5 s of silence after the file so the last turn closes upstream before endStream
+      feed = setInterval(() => { if (!feedStarted && Date.now() - tf > 45000) { clearInterval(feed); feed = null; log('replay never started; feed stopped'); return; } const due = Math.floor((Date.now() - tf) / 80); while (sent < due) { if (!feedStarted) up.sendAudio(SIL); else if (i < buf.length) { up.sendAudio(buf.subarray(i, Math.min(i + 3840, buf.length))); i += 3840; } else if (tail < 19) { up.sendAudio(SIL); tail++; } else { clearInterval(feed); feed = null; log('replay feed done'); up.end(); session.end(); return; } sent++; } }, 40);
     }
     if (msg.type === 'mark' && msg.name === 'audio_start') feedStarted = true;
     if (msg.type === 'begin') session.begin();

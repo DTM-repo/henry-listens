@@ -11,7 +11,6 @@ const dayNum = (d, w) => d ? +d : ORD[w] ?? (w?.startsWith('twenty') ? 20 + ORD[
 /** Find "May 15th, 2027" / "May fifteenth 2027" / "May 2027" / "May 15" (year inferred: next occurrence after today). */
 function findDates(text, today) {
   const out = [];
-  text = text.replace(new RegExp(`\\b(${MON})\\s+\\1\\b`, 'gi'), '$1');   // transcription stutter: "August August 15th" → "August 15th"
   const re = new RegExp(`\\b${MON}(?:\\s+(?:${DAY}))?(?:,?\\s+(?:of\\s+)?(20\\d{2}))?\\b`, 'gi');
   let m;
   while ((m = re.exec(text))) {
@@ -26,6 +25,7 @@ export class Facts {
   constructor() { this.f = {}; this.today = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z'); }
   /** @returns {boolean} true if a date-bearing fact changed */
   learn(role, text) {
+    text = text.replace(new RegExp(`\\b(${MON})(?:\\s+\\1)+\\b`, 'gi'), '$1');   // transcription stutter: "August August 15th" → "August 15th" (before both passes, so indexes agree)
     const t = text.toLowerCase(); const dates = findDates(text, this.today); const before = JSON.stringify(this.f);
     const near = (re, win = 80) => { const i = t.search(re); if (i < 0) return null; return dates.find((d) => Math.abs(d.index - i) < win) || null; };
     // program end / extension

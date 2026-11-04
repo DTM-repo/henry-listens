@@ -57,7 +57,7 @@ export class AsrUpstream extends EventEmitter {
   }
 
   end() {
-    if (this.closed) return;
+    if (this.closed || this.ended) return; this.ended = true;
     try { this.ws.send(JSON.stringify({ type: 'endStream' })); } catch {}
   }
 

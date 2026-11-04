@@ -44,9 +44,10 @@ export class Agent extends EventEmitter {
     let r;
     try { r = await fetch(BASE + '/responses', { method: 'POST', headers: { Authorization: `Bearer ${this.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: MODEL, ...body }) }); }
     catch (e) { if (attempt < 2) { await new Promise((res) => setTimeout(res, 1500 * (attempt + 1))); return this.post(body, attempt + 1); } throw e; }   // transient network failure: retry twice
-    if ((r.status === 429 || r.status >= 500) && attempt < 2) { await new Promise((res) => setTimeout(res, 2000 * (attempt + 1))); return this.post(body, attempt + 1); }
-    const j = await r.json();
-    if (!r.ok) throw new Error(`${r.status} ${JSON.stringify(j).slice(0, 300)}`);
+    if ((r.status === 429 || r.status === 503) && attempt < 2) { await new Promise((res) => setTimeout(res, 2000 * (attempt + 1))); return this.post(body, attempt + 1); }
+    const raw = await r.text();
+    if (!r.ok) throw new Error(`${r.status} ${raw.slice(0, 300)}`);
+    const j = JSON.parse(raw);
     this.usage.calls++; this.usage.input += j.usage?.input_tokens || 0; this.usage.output += j.usage?.output_tokens || 0;
     return j;
   }

@@ -48,6 +48,13 @@ export class Redactor {
     for (const { re, token } of this.nameRes) out = out.replace(re, token);
     return out;
   }
+  /** Same patterns, but nothing is minted into the ledger: for partial (unfinished) transcripts shown on the stage. */
+  preview(text) {
+    let out = this.spokenDigits(text);
+    for (const { token, re, group } of PATTERNS) out = out.replace(re, (m, g1) => group ? m.replace(g1, `[${token}]`) : `[${token}]`);
+    for (const { re, token } of this.nameRes) out = out.replace(re, token);
+    return out;
+  }
   /** "I'm Amara Osei, the student" / "my name is X" → learn X. Returns the detected role word if any. */
   learnFromIntro(text, roleToken = 'PERSON') {
     const m = text.replace(/[’‘]/g, "'").match(/\b(?:[Ii]'m|[Ii] am|[Mm]y name is|[Tt]his is|[Ii]t's)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/);
