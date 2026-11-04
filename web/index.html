@@ -44,19 +44,28 @@
   #live { color:var(--mute); font-style:italic; min-height:1.5em; font-size:13px }
   .note { color:var(--mute); font-size:12.5px; grid-column:1/-1 }
   label.sw { color:var(--mute); font-size:13px; display:flex; gap:6px; align-items:center }
+  /* review + export */
+  .card .rv { display:flex; gap:6px; margin-top:10px } .card .rv button { background:transparent; color:var(--mute); border:1px solid var(--line); padding:3px 10px; font-size:12px; border-radius:6px } .card .rv button.on { background:var(--accent); color:#06101c; border-color:var(--accent) } .card .rv.done { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ok) }
+  .card.struck { opacity:.35 } .card.struck h3, .card.struck p { text-decoration:line-through } .card .detail[contenteditable="true"] { outline:1px solid var(--accent); background:#10131a; padding:4px; border-radius:4px }
+  #review-bar { grid-column:1/-1; display:flex; gap:12px; align-items:center; flex-wrap:wrap; background:#15201a; border-color:#2a4a36 } #review-bar p { margin:0; flex:1; min-width:240px } #exports { display:flex; gap:8px; flex-wrap:wrap }
+  #sample { background:transparent; color:var(--accent); border:1px solid var(--accent) }
 </style>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%233b63c4'/><circle cx='38' cy='38' r='22' fill='%239ec1ff' opacity='.6'/></svg>">
+<script src="/relay-config.js"></script>
 </head>
 <body data-phase="idle">
 <header>
   <h1>Henry Listens <small>an advising appointment becomes the compliance record</small></h1>
   <button id="toggle">Start</button>
+  <button id="sample">Watch a sample appointment</button>
   <button id="begin" class="ghost" style="display:none">Skip intro</button>
   <label class="sw"><input type="checkbox" id="mute"> mute Henry</label>
   <span id="status">idle</span>
-  <span class="meta"><span id="meter"><span id="level"></span></span><span id="clock">00:00</span><span id="usage"></span><button id="drawer-toggle" class="ghost">Evidence</button><button id="export" class="ghost">Export</button></span>
+  <span class="meta"><span id="meter"><span id="level"></span></span><span id="clock">00:00</span><span id="usage"></span><button id="drawer-toggle" class="ghost">Evidence</button></span>
 </header>
 <main>
-  <section id="henry"><div id="henry-mark"></div><div><div id="henry-says">Press Start when everyone is in the room.</div><div id="roles"></div><div id="live"></div></div></section>
+  <section id="henry"><div id="henry-mark"></div><div><div id="henry-says">Press Start when everyone is in the room, or watch a sample appointment.</div><div id="roles"></div><div id="live"></div></div></section>
+  <section id="review-bar" style="display:none"><p>Shared review: confirm, edit or strike each card together. Nothing is exported until the adviser signs.</p><button id="sign">Adviser signs</button><div id="exports" style="display:none"><button class="ghost" data-doc="case_note">Case note PDF</button><button class="ghost" data-doc="student_summary">Student summary PDF</button><button class="ghost" data-doc="sevis_checklist">SEVIS checklist PDF</button><button class="ghost" data-doc="json">JSON</button></div></section>
   <section id="stage"><h2>Issues raised</h2><div id="cards-empty" class="empty">Cards appear as issues come up.</div><div id="cards"></div></section>
   <aside>
     <section><h2>Dates</h2><div id="timeline"></div></section>

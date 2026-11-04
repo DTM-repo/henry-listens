@@ -1,6 +1,8 @@
 // compute_dates — the only place a date is ever calculated. The model never writes a date; it calls this.
 // Rules are re-implemented here for the hackathon (not copied from the Duration Mapper). Each result names its rule id.
-const d = (s) => { const x = new Date(s + 'T00:00:00Z'); if (isNaN(x)) throw new Error('bad date ' + s); return x; };
+// "2027-05" (month only) → last day of that month, flagged approx so the note says "confirm the day on the I-20"
+const d = (s) => { const m = /^(\d{4})-(\d{2})$/.exec(s); const x = m ? new Date(Date.UTC(+m[1], +m[2], 0)) : new Date(s + 'T00:00:00Z'); if (isNaN(x)) throw new Error('bad date ' + s); return x; };
+const approx = (s) => /^\d{4}-\d{2}$/.test(s);
 const iso = (x) => x.toISOString().slice(0, 10);
 const add = (x, n) => new Date(x.getTime() + n * 86400000);
 
@@ -9,6 +11,7 @@ export const RULES = {
   grace_period: { id: 'GRACE_8CFR214.2(f)(5)(iv)', text: '60-day grace period after program completion (or after post-completion OPT ends).' },
   cpt_fulltime_counter: { id: 'CPT_FT_12MO_8CFR214.2(f)(10)(i)', text: 'Twelve months or more of full-time CPT eliminates eligibility for OPT at that degree level; part-time CPT does not count.' },
   program_end: { id: 'I20_PROGRAM_END', text: 'Program end date as printed on the Form I-20.' },
+  cpt_before_start: { id: 'CPT_AUTH_BEFORE_START_8CFR214.2(f)(10)(i)', text: 'CPT must be authorized by the DSO in SEVIS (new I-20 issued) before the employment begins.' },
 };
 
 /**
@@ -16,10 +19,11 @@ export const RULES = {
  */
 export function computeDates(a = {}) {
   const today = a.today ? d(a.today) : new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
-  const out = { today: iso(today), markers: [], windows: [], notes: [] };
+  const out = { today: iso(today), markers: [], windows: [], notes: [], deadlines: [] };
   if (a.program_end) {
     const pe = d(a.program_end);
-    out.markers.push({ date: iso(pe), label: 'Program end date', rule: RULES.program_end.id });
+    out.markers.push({ date: iso(pe), label: approx(a.program_end) ? 'Program end date (month stated; confirm day on I-20)' : 'Program end date', rule: RULES.program_end.id });
+    if (approx(a.program_end)) out.notes.push({ text: `Only the month of the program end date was stated; ${iso(pe)} assumes the last day of that month. Confirm the exact date on the Form I-20.`, rule: RULES.program_end.id });
     const open = add(pe, -90), close = add(pe, 60);
     out.windows.push({ start: iso(open), end: iso(close), label: 'OPT filing window (USCIS receipt)', rule: RULES.opt_window.id });
     out.windows.push({ start: iso(add(pe, 1)), end: iso(close), label: '60-day grace period', rule: RULES.grace_period.id });
@@ -35,18 +39,20 @@ export function computeDates(a = {}) {
       out.notes.push({ text: `Full-time CPT counter after this authorization: ${total.toFixed(1)} months of 12 (OPT eligibility lost at 12 or more).`, rule: RULES.cpt_fulltime_counter.id });
       out.cpt_full_time_months_total = +total.toFixed(1);
     } else out.notes.push({ text: 'Part-time CPT does not count toward the 12-month full-time CPT limit.', rule: RULES.cpt_fulltime_counter.id });
-    if (a.program_end && e > d(a.program_end)) out.notes.push({ text: 'CPT end date is after the program end date — CPT cannot extend past program completion.', rule: RULES.program_end.id });
+    out.deadlines.push({ action: 'CPT authorization entered in SEVIS and new I-20 issued before the start date', date: iso(s), rule: RULES.cpt_before_start.id, owner: 'adviser' });
+    out.notes.push({ text: `CPT must be authorized in SEVIS before ${iso(s)}; the student may not begin work before the authorization is on the I-20.`, rule: RULES.cpt_before_start.id });
+    if (a.program_end && e > d(a.program_end)) out.notes.push({ text: `CONFLICT: CPT end date ${iso(e)} is after the program end date ${iso(d(a.program_end))} — CPT cannot extend past program completion. Either the program end date must be extended on the I-20 (if the student needs more time to finish) or the CPT must end by program completion.`, rule: RULES.program_end.id });
   }
   return out;
 }
 
 export const computeDatesTool = {
   type: 'function', name: 'compute_dates', strict: true,
-  description: 'Compute every date-driven window (OPT filing window, grace period, CPT dates and the full-time CPT counter) from facts the student stated. Call this instead of calculating any date yourself. Pass only what was stated; use "" or false or 0 for unknowns.',
+  description: 'Compute every date-driven window (OPT filing window, grace period, CPT dates, the full-time CPT counter) and every deadline from facts the student stated. Call this instead of calculating any date yourself, and call it again whenever a new date is stated. Pass only what was stated; use "" or false or 0 for unknowns.',
   parameters: { type: 'object', additionalProperties: false,
     required: ['program_end', 'cpt_start', 'cpt_end', 'cpt_full_time', 'prior_full_time_cpt_months'],
     properties: {
-      program_end: { type: 'string', description: 'ISO date YYYY-MM-DD as stated or on the I-20, else ""' },
+      program_end: { type: 'string', description: 'YYYY-MM-DD as stated or on the I-20; YYYY-MM if only the month was said ("May 2027" → "2027-05"); "" if not stated' },
       cpt_start: { type: 'string', description: 'ISO date or ""' }, cpt_end: { type: 'string', description: 'ISO date or ""' },
       cpt_full_time: { type: 'boolean', description: 'true if more than 20 hours/week' },
       prior_full_time_cpt_months: { type: 'number' },

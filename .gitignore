@@ -8,3 +8,4 @@ docs/cases/**/real-*
 *.wav
 *.pcm
 *.webm
+web/samples/*.m4a

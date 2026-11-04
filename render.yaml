@@ -1,0 +1,12 @@
+# Render.com blueprint: one free web service running the relay (Node + WebSocket). Set MODEL_API_KEY in the dashboard.
+services:
+  - type: web
+    name: henry-listens-relay
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: MODEL_API_KEY
+        sync: false
+      - key: MAX_SESSIONS_PER_DAY
+        value: "60"

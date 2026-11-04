@@ -15,14 +15,21 @@ const KEY = process.env.MODEL_API_KEY;
 if (!KEY) { console.error('MODEL_API_KEY missing (put it in .env; see .env.example)'); process.exit(1); }
 
 const WEB = path.resolve(import.meta.dirname, '..', 'web');
+// cost guard: the relay pays for every minute of Voice Transcribe and every Spark call
+const MAX_SESSIONS_PER_DAY = Number(process.env.MAX_SESSIONS_PER_DAY || 60), MAX_SESSION_MS = Number(process.env.MAX_SESSION_MS || 20 * 60_000);
+let dayKey = '', daySessions = 0;
+const sessionAllowed = () => { const k = new Date().toISOString().slice(0, 10); if (k !== dayKey) { dayKey = k; daySessions = 0; } return daySessions < MAX_SESSIONS_PER_DAY; };
+const EVENT_LOG = process.env.RECORD_EVENTS || '';   // write every browser-facing event with a timestamp (makes the static sample for /?sample=)
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.webm': 'audio/webm', '.wav': 'audio/wav', '.mp3': 'audio/mpeg' };
 
 const VOICE = path.join(WEB, 'voice'); fs.mkdirSync(VOICE, { recursive: true });
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
+  if (url.pathname === '/health') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ ok: true, sessions_today: daySessions, cap: MAX_SESSIONS_PER_DAY })); }
   if (req.method === 'PUT' && /^\/voice\/(open|name|go|review)\.webm$/.test(url.pathname)) {   // save a recorded Henry line
     const chunks = []; req.on('data', (c) => chunks.push(c)); req.on('end', () => { fs.writeFileSync(path.join(VOICE, path.basename(url.pathname)), Buffer.concat(chunks)); res.writeHead(204); res.end(); console.log('saved', url.pathname, Buffer.concat(chunks).length, 'bytes'); }); return;
   }
+  if (url.pathname === '/relay-config.js') { res.writeHead(200, { 'Content-Type': 'text/javascript', 'Cache-Control': 'no-store' }); return res.end(`window.RELAY_URL=${JSON.stringify(process.env.PUBLIC_RELAY_URL || '')};`); }
   let file = path.join(WEB, url.pathname === '/' ? 'index.html' : url.pathname);
   if (!file.startsWith(WEB) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('not found'); }
   res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
@@ -35,8 +42,12 @@ wss.on('connection', async (client, req) => {
   const id = ++n;
   const mode = new URL(req.url, 'http://x').searchParams.get('mode') || 'DIARIZATION';
   const log = (...a) => console.log(`[asr#${id}]`, ...a);
-  const send = (o) => { if (client.readyState === client.OPEN) client.send(JSON.stringify(o)); };
+  const t0 = Date.now(); const events = [];
+  const send = (o) => { if (EVENT_LOG) events.push({ t: Date.now() - t0, ...o }); if (client.readyState === client.OPEN) client.send(JSON.stringify(o)); };
   log('browser connected, mode', mode);
+  if (!sessionAllowed()) { log('daily session cap reached'); send({ type: 'relay', status: 'capped' }); return client.close(1013); }
+  daySessions++;
+  const killer = setTimeout(() => { log('session cap', MAX_SESSION_MS, 'ms'); send({ type: 'relay', status: 'time_cap' }); up.end(); }, MAX_SESSION_MS);
 
   const session = new Session({ key: KEY, log });
   session.on('out', (o) => send(o));
@@ -70,8 +81,9 @@ wss.on('connection', async (client, req) => {
     let msg; try { msg = JSON.parse(String(data)); } catch { return; }
     if (msg.type === 'end') { log('browser ended stream after', Math.round(up.sentMs), 'ms audio'); up.end(); session.end(); }
     if (msg.type === 'begin') session.begin();
+    if (msg.type === 'mark' && EVENT_LOG) events.push({ t: Date.now() - t0, type: 'mark', name: String(msg.name).slice(0, 40) });
   });
-  client.on('close', () => { log('browser closed'); dump?.end(); up.closed ? null : up.end(); setTimeout(() => up.abort(), 3000); });
+  client.on('close', () => { log('browser closed'); clearTimeout(killer); if (EVENT_LOG) fs.writeFileSync(EVENT_LOG, JSON.stringify(events)); dump?.end(); up.closed ? null : up.end(); setTimeout(() => up.abort(), 3000); });
 });
 
 server.listen(PORT, () => console.log(`Henry Listens relay  →  http://localhost:${PORT}   (ws /asr)`));

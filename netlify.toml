@@ -1,0 +1,10 @@
+# Netlify hosts the stage (static) and tells it where the relay lives. The relay itself (WebSocket) runs on Render.
+[build]
+  publish = "web"
+  command = "echo static"
+[functions]
+  directory = "netlify/functions"
+[[redirects]]
+  from = "/relay-config.js"
+  to = "/.netlify/functions/relay-config"
+  status = 200
