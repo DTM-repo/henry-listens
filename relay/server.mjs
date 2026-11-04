@@ -77,7 +77,7 @@ wss.on('connection', async (client, req) => {
     if (ev.type === 'speaker') { spans.push({ label: ev.label, start: spanFrom, end: ev.audioProcessedMs }); spanFrom = ev.audioProcessedMs; last = ev.label; }
     if (ev.type === 'speechStart') { open.set(ev.turnId, ev.audioProcessedMs); spanFrom = Math.max(spanFrom, ev.audioProcessedMs); }
     if (ev.type === 'speechComplete') { const a = open.get(ev.turnId) ?? 0; open.delete(ev.turnId); session.addTurn({ label: labelFor(a, ev.audioProcessedMs), text: ev.transcript, start: a, end: ev.audioProcessedMs }); return; }
-    if (ev.type === 'transcript' && !ev.final) { send({ type: 'partial', text: ev.transcript, role: session.roleOf(last) }); return; }
+    if (ev.type === 'transcript' && !ev.final) { const r = session.redactor.redact(ev.transcript); send({ type: 'partial', text: typeof r === 'string' ? r : r.text, role: session.roleOf(last) }); return; }   // partials are redacted too: the room never sees an ID either
     if (ev.type === 'speechStart' || ev.type === 'speechEnd') send({ type: ev.type, turnId: ev.turnId });
   });
   up.on('close', ({ code, reason }) => { log('upstream closed', code, reason || ''); send({ type: 'relay', status: 'upstream_closed', code, reason, sentMs: Math.round(up.sentMs) }); session.end();
