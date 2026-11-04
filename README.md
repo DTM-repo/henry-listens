@@ -19,6 +19,7 @@ Henry sits in on the meeting. The room never sees a transcript; it sees **the re
 3. **Drafts as an agent, after every turn.** Muse Spark 1.3 re-reads the redacted meeting so far and rewrites the record as strict JSON (structured output against `docs/record.schema.json`), calling tools in parallel as it needs them:
    - `search_sources` / `ask_henry` — [HenryKnows](https://henryknows.info), a free regulatory reference over 500+ primary sources (8 CFR, SEVP guidance, USCIS policy), called over MCP. A citation is accepted only if its URL actually came back from a search in this session; anything else is marked unverified.
    - `compute_dates` — a deterministic date engine. The model never writes a date. OPT filing window, grace period, CPT dates, the 12-month full-time CPT counter, the "authorize before the start date" deadline, program extensions, visa validity on re-entry, and conflicts (CPT running past the program end date) all come from code, each tagged with the rule it applied.
+   - **The I-20 itself.** The adviser drops the student's Form I-20 (PDF) into the session. The relay rebuilds the PDF from its text layer with the identifying items (name, SEVIS ID, date of birth, email) boxed out, so the redaction is real, not a sticker; Spark then reads the program fields off the redacted copy with `input_file` and strict JSON output. The program end date on the form is authoritative, and the stage says whether it matches what the student said.
    - **Code goes first.** `relay/facts.mjs` parses dates and hours out of each redacted turn the moment it is finished and runs the date engine immediately, so the calendar moves while people are still talking; the agent's later pass confirms it. During the meeting Spark maintains only the live parts of the record (cards, dates, checklist, questions); the case note and student summary are written once, in a final pass after the meeting ends.
 4. **Shows the record as it grows.** Issue cards appear as issues come up and get their citation a beat later; dates land on a calendar strip; the SEVIS checklist fills in with owner and deadline; "still to confirm" collects what the adviser must check. The redacted transcript is one click away in the Evidence drawer.
 5. **The adviser signs.** At the end, adviser and student click through the cards together (confirm, edit, strike). Only then does the adviser sign, and only then can anything be exported: the case note, a plain-language summary for the student, and the SEVIS action checklist, each as a printable PDF, plus the JSON record.
@@ -30,7 +31,7 @@ The rule that makes it safe: **the model drafts and cites; code computes every c
 | Model / API | How |
 |---|---|
 | `muse-voice-transcribe-1.0`, realtime WebSocket | Live diarized transcription; speaker events are mapped to turns by audio span; role binding from the setup ritual |
-| `muse-spark-1.3`, Responses API | Agent loop per completed turn: parallel function calls (`search_sources`, `ask_henry`, `compute_dates`), `previous_response_id` chaining, strict `json_schema` structured output, reasoning effort medium |
+| `muse-spark-1.3`, Responses API | Agent loop per completed turn: parallel function calls (`search_sources`, `ask_henry`, `compute_dates`), `previous_response_id` chaining, strict `json_schema` structured output; a second call reads the redacted I-20 PDF via `input_file` |
 
 A typical two-minute appointment costs about fourteen Spark calls.
 
@@ -46,6 +47,7 @@ npm run dev                 # http://localhost:8787
 - **Replay a recording through the real pipeline:** `http://localhost:8787/?src=/test/dialog4.wav` (two synthetic macOS voices; this is also the test harness, because Chrome's fake-microphone flag delivers silence).
 - **Static sample, no relay:** `http://localhost:8787/?sample=cpt` replays a recorded event stream and the same audio (a four-issue appointment: summer CPT, a program extension, winter travel with an expiring visa, OPT after CPT). This is what the public site plays when the relay is asleep or out of credit.
 - **Mic-free transcription test:** `npm run test:voice -- web/test/dialog4.wav`.
+- The synthetic I-20 used in the sample is `web/test/I-20.pdf` (every value invented; "SYNTHETIC SAMPLE" watermark). Drop it in with the "Add the student's I-20" button during a live or replay session.
 - Record Henry's spoken lines in your own voice at `/record.html`.
 
 The relay holds the API key; the browser never sees it. `MAX_SESSIONS_PER_DAY` (60) and a 20-minute session cap keep a public deployment inside the hackathon credit.
@@ -68,11 +70,11 @@ browser (mic or replay, the stage)  ──PCM16 24 kHz, 80 ms frames──▶  r
                                                                                  └─▶ relay/dates.mjs     (compute_dates)
 ```
 
-Files: `relay/server.mjs` (HTTP + WebSocket bridge, cost guard, event log) · `relay/asr-upstream.mjs` (one Voice Transcribe session) · `relay/session.mjs` (roles, redaction, phases, code-first dates) · `relay/facts.mjs` (dates and hours parsed from turns) · `relay/redact.mjs` (ledger) · `relay/agent.mjs` (Spark loop + diff) · `relay/henry.mjs` (HenryKnows MCP client) · `relay/dates.mjs` (date rules) · `web/app.js` (the stage, review, exports, sample replay) · `docs/record.schema.json`.
+Files: `relay/server.mjs` (HTTP + WebSocket bridge, cost guard, event log) · `relay/asr-upstream.mjs` (one Voice Transcribe session) · `relay/session.mjs` (roles, redaction, phases, code-first dates) · `relay/facts.mjs` (dates and hours parsed from turns) · `relay/i20.mjs` (PDF rebuilt without identifiers, then read by Spark) · `relay/redact.mjs` (ledger) · `relay/agent.mjs` (Spark loop + diff) · `relay/henry.mjs` (HenryKnows MCP client) · `relay/dates.mjs` (date rules) · `web/app.js` (the stage, review, exports, sample replay) · `docs/record.schema.json`.
 
 ## What was built during the hackathon, and what was not
 
-Everything in this repository is new, with one disclosed exception: the paper-calendar animation (year grid → month → ink circle → lands on the date line) is adapted from about 150 lines of CSS in my own earlier F-1 Journey app, re-implemented here in plain JavaScript. [HenryKnows](https://henryknows.info) is a pre-existing public service the agent calls as an external tool, the same way it would call any API; none of its code is here. The date rules in `relay/dates.mjs` were re-implemented for this project from the regulation text they cite. Not built: reading the student's I-20 PDF into the session, and a Muse Glimmer open-weight redaction pass; both are listed in `docs/PLAN.md` as the next steps.
+Everything in this repository is new, with one disclosed exception: the paper-calendar animation (year grid → month → ink circle → lands on the date line) is adapted from about 150 lines of CSS in my own earlier F-1 Journey app, re-implemented here in plain JavaScript. [HenryKnows](https://henryknows.info) is a pre-existing public service the agent calls as an external tool, the same way it would call any API; none of its code is here. The date rules in `relay/dates.mjs` were re-implemented for this project from the regulation text they cite. Not built: a Muse Glimmer open-weight redaction pass (listed in `docs/PLAN.md` as a next step).
 
 ## Synthetic only
 
