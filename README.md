@@ -17,7 +17,7 @@ Henry sits in on the meeting. The room never sees a transcript; it sees **the re
 1. **Listens.** Muse Voice Transcribe streams the appointment live with speaker labels (`DIARIZATION` mode). A short setup ritual binds each voice to a role (student, adviser) from the words people say, so nobody configures anything.
 2. **Redacts before anything leaves the room.** A name spoken in the intro goes straight into a redaction ledger; SEVIS IDs, passport numbers, phone numbers, emails and spoken digit runs are caught by deterministic code in the relay. The hosted model only ever sees tokens like `[STUDENT]` and `[SEVIS_ID]`. The ledger never leaves the relay process.
 3. **Drafts as an agent, after every turn.** Muse Spark 1.3 re-reads the redacted meeting so far and rewrites the record as strict JSON (structured output against `docs/record.schema.json`), calling tools in parallel as it needs them:
-   - `search_sources` / `ask_henry` — [HenryKnows](https://henryknows.info), a free regulatory reference over 500+ primary sources (8 CFR, SEVP guidance, USCIS policy), called over MCP. A citation is accepted only if its URL actually came back from a search in this session; anything else is marked unverified.
+   - `search_sources` — [HenryKnows](https://henryknows.info), a free regulatory reference over 500+ primary sources (8 CFR, SEVP guidance, USCIS policy), called over MCP. It is lexical retrieval over the corpus, no model involved: Spark reads the passages and writes the sentence itself. (HenryKnows also has an `ask_henry` answer tool; it is not used, because that answer is written by a non-Meta model and every model this project calls at runtime is a Meta model.) A citation is accepted only if its URL actually came back from a search in this session; anything else is marked unverified.
    - `compute_dates` — a deterministic date engine. The model never writes a date. OPT filing window, grace period, CPT dates, the 12-month full-time CPT counter, the "authorize before the start date" deadline, program extensions, visa validity on re-entry, and conflicts (CPT running past the program end date) all come from code, each tagged with the rule it applied.
    - **The I-20 itself.** The adviser drops the student's Form I-20 (PDF) into the session. The relay rebuilds the PDF from its text layer with the identifying items (name, SEVIS ID, date of birth, email) boxed out, so the redaction is real, not a sticker; Spark then reads the program fields off the redacted copy with `input_file` and strict JSON output. The program end date on the form is authoritative, and the stage says whether it matches what the student said.
    - **Code goes first.** `relay/facts.mjs` parses dates and hours out of each redacted turn the moment it is finished and runs the date engine immediately, so the calendar moves while people are still talking; the agent's later pass confirms it. During the meeting Spark maintains only the live parts of the record (cards, dates, checklist, questions); the case note and student summary are written once, in a final pass after the meeting ends.
@@ -31,7 +31,7 @@ The rule that makes it safe: **the model drafts and cites; code computes every c
 | Model / API | How |
 |---|---|
 | `muse-voice-transcribe-1.0`, realtime WebSocket | Live diarized transcription; speaker events are mapped to turns by audio span; role binding from the setup ritual |
-| `muse-spark-1.3`, Responses API | Agent loop per completed turn: parallel function calls (`search_sources`, `ask_henry`, `compute_dates`), `previous_response_id` chaining, strict `json_schema` structured output; a second call reads the redacted I-20 PDF via `input_file` |
+| `muse-spark-1.3`, Responses API | Agent loop per completed turn: parallel function calls (`search_sources`, `compute_dates`), `previous_response_id` chaining, strict `json_schema` structured output; a second call reads the redacted I-20 PDF via `input_file` |
 
 A typical two-minute appointment costs about fourteen Spark calls.
 
@@ -66,7 +66,7 @@ browser (mic or replay, the stage)  ──PCM16 24 kHz, 80 ms frames──▶  r
         │                                                                ├─▶ redaction ledger (names from the intro, ID patterns, spoken digits)
         └────────────────────────────────────────────────────────────────┤
                                                                          └─▶ agent, per turn: POST /v1/responses (Spark 1.3, tools, json_schema)
-                                                                                 ├─▶ henryknows.info/mcp  (search_sources, ask_henry)
+                                                                                 ├─▶ henryknows.info/mcp  (search_sources: retrieval, no model)
                                                                                  └─▶ relay/dates.mjs     (compute_dates)
 ```
 
@@ -75,6 +75,10 @@ Files: `relay/server.mjs` (HTTP + WebSocket bridge, cost guard, event log) · `r
 ## What was built during the hackathon, and what was not
 
 Everything in this repository is new, with one disclosed exception: the paper-calendar animation (year grid → month → ink circle → lands on the date line) is adapted from about 150 lines of CSS in my own earlier F-1 Journey app, re-implemented here in plain JavaScript. [HenryKnows](https://henryknows.info) is a pre-existing public service the agent calls as an external tool, the same way it would call any API; none of its code is here. The date rules in `relay/dates.mjs` were re-implemented for this project from the regulation text they cite. Not built: a Muse Glimmer open-weight redaction pass (listed in `docs/PLAN.md` as a next step).
+
+## Third-party open source
+
+`ws` (WebSocket server), `pdfjs-dist` (PDF text layer), `pdf-lib` (PDF rebuild), all MIT/Apache-2.0 via npm; DM Serif Display, DM Sans and Caveat from Google Fonts (OFL). Nothing else; no framework, no build step.
 
 ## Synthetic only
 

@@ -20,19 +20,16 @@ async function mcpCall(name, args, timeoutMs = 45000) {
 
 /** Fast: passages + urls. Returns { sources:[{n,title,url,heading,excerpt}] } */
 export const searchSources = (query, limit = 5) => mcpCall('search_sources', { query, limit });
-/** Slow (10–40 s): cited answer. Returns { answer, sources } (shape per HenryKnows) */
-export const askHenry = (question, audience = 'professional') => mcpCall('ask_henry', { question, audience }, 60000);
+// HenryKnows also offers ask_henry (a written answer). It is deliberately NOT a runtime tool here: that answer is composed by a
+// non-Meta model, and the hackathon rules require every model called at runtime to be a Meta model. search_sources is lexical
+// retrieval over the corpus (no model), so Spark reads the passages and writes the sentence itself.
 
 export const henryTools = [
   { type: 'function', name: 'search_sources', strict: true,
     description: 'Search HenryKnows primary sources (8 CFR, SEVP/USCIS guidance, Federal Register) and get matching passages with their URLs. Fast. Use it to ground every regulatory claim; cite only URLs it returns.',
     parameters: { type: 'object', additionalProperties: false, required: ['query'], properties: { query: { type: 'string', description: 'Regulatory question in general terms, no names or identifiers' } } } },
-  { type: 'function', name: 'ask_henry', strict: true,
-    description: 'Ask HenryKnows for a cited answer to one regulatory question (slow, 10–40 s). Use only when search_sources passages do not settle the point.',
-    parameters: { type: 'object', additionalProperties: false, required: ['question'], properties: { question: { type: 'string', description: 'The question with the facts that matter (dates, degree level, employer type), no names or ID numbers' } } } },
 ];
 export async function runHenryTool(name, args) {
   if (name === 'search_sources') { const r = await searchSources(args.query, 5); return { sources: (r.sources || []).map((s) => ({ title: s.title, url: s.url, heading: s.heading, excerpt: (s.excerpt || '').slice(0, 900) })) }; }
-  if (name === 'ask_henry') return askHenry(args.question);
   return { error: 'unknown tool ' + name };
 }

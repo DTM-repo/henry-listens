@@ -57,8 +57,8 @@ export class Agent extends EventEmitter {
       const input = [{ type: 'message', role: 'user', content: [{ type: 'input_text', text:
         `Transcript so far:\n${transcript}\n\nDates parsed by code from the transcript (pass these to compute_dates): ${this.hint || 'none yet'}\n\nPrevious record (update it; keep ids):\n${this.record ? JSON.stringify(this.record) : 'none yet'}` }] }];
       this.emit('activity', { kind: 'thinking', text: `reading turn ${this.turns.length}` });
-      // during the meeting: fast tools only (search_sources + compute_dates), few hops; the final pass after the meeting may use ask_henry
-      const tools = this.final ? this.tools : this.tools.filter((t) => t.name !== 'ask_henry');
+      // tools: search_sources (retrieval, no model) + compute_dates; few hops mid-meeting, more in the final pass
+      const tools = this.tools;
       const maxHops = this.final ? 8 : 3;
       const schema = this.final ? SCHEMA : LIVE;
       let r = await this.post({ instructions: INSTRUCTIONS, input, tools, text: { format: { type: 'json_schema', name: 'record', strict: true, schema } }, reasoning: { effort: 'low' } });
