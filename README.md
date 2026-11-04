@@ -48,7 +48,7 @@ npm run dev                 # http://localhost:8787
 - **Static sample, no relay:** `http://localhost:8787/?sample=cpt` replays a recorded event stream and the same audio (a four-issue appointment: summer CPT, a program extension, winter travel with an expiring visa, OPT after CPT). This is what the public site plays when the relay is asleep or out of credit.
 - **Mic-free transcription test:** `npm run test:voice -- web/test/dialog4.wav`.
 - The synthetic I-20 used in the sample is `web/test/I-20.pdf` (every value invented; "SYNTHETIC SAMPLE" watermark). Drop it in with the "Add the student's I-20" button during a live or replay session.
-- Record Henry's spoken lines in your own voice at `/record.html`.
+- Henry's four spoken lines ship as synthetic speech in `web/voice/`; re-record them in your own voice at `/record.html` if you like.
 
 The relay holds the API key; the browser never sees it. `MAX_SESSIONS_PER_DAY` (60) and a 20-minute session cap keep a public deployment inside the hackathon credit.
 

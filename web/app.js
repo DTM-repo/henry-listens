@@ -11,10 +11,10 @@ const state = { ws: null, ctx: null, stream: null, node: null, audio: null, runn
   dates: new Map(), checks: new Map(), questions: [], flag: null, mode: 'idle', sessionId: '', i20: null };
 const ROLE_LABEL = { student: 'Student', adviser: 'Adviser', other: 'Other' };
 const RITUAL = {
-  open: "This is Henry Listens. Don't mind me. I'll sit in on the meeting and take notes, then give you a complete assessment to take with you. I keep it private: no names, no personal details. I'm here so nothing gets missed and nobody has to take notes. Before we start, let's check the mics. Could each of you introduce yourself as a student, an adviser, or something else?",
-  name: "I'll just write 'student' so we don't keep personal information.",
-  go: "We're all set. Go ahead. Forget about me. I'm furniture.",
-  review: "Here is what I have. Walk through it together; nothing leaves until the adviser signs.",
+  open: "Hi, I'm Henry. I'll sit in and keep the record; no names, nothing personal. Say who you are, and we'll start.",
+  name: "Got it. I'll just write 'student'.",
+  go: "All set. Go ahead.",
+  review: "Here's what I have. Go through it together. Nothing leaves until the adviser signs.",
 };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const mmss = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
