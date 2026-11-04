@@ -6,8 +6,9 @@ const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const MODE = params.get('sample') ? 'sample' : params.get('src') ? 'replay' : 'live';
 const RELAY = (window.RELAY_URL || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`).replace(/\/$/, '');
+const RELAY_HTTP = RELAY.replace(/^ws/, 'http');
 const state = { ws: null, ctx: null, stream: null, node: null, audio: null, running: false, frames: 0, phase: 'idle', roles: {}, turns: [], record: null, review: {}, signed: null, timers: [],
-  dates: new Map(), checks: new Map(), questions: [], flag: null, mode: 'idle' };
+  dates: new Map(), checks: new Map(), questions: [], flag: null, mode: 'idle', sessionId: '', i20: null };
 const ROLE_LABEL = { student: 'Student', adviser: 'Adviser', other: 'Other' };
 const RITUAL = {
   open: "This is Henry Listens. Don't mind me. I'll sit in on the meeting and take notes, then give you a complete assessment to take with you. I keep it private: no names, no personal details. I'm here so nothing gets missed and nobody has to take notes. Before we start, let's check the mics. Could each of you introduce yourself as a student, an adviser, or something else?",
@@ -122,6 +123,26 @@ function pumpJourney() {
   setTimeout(() => { el.remove(); item.state = 'landed'; journeyActive = null; renderTimeline(); pumpJourney(); }, 2750);
 }
 
+// ---------- the I-20 ----------
+function renderDoc(ev) {
+  const el = $('#doc'); $('#doc-add').style.display = 'none';
+  let card = el.querySelector('.doc-card'); if (!card) { card = document.createElement('div'); card.className = 'doc-card'; el.append(card); }
+  if (ev.stage === 'redacted') { state.i20 = { boxes: ev.boxes }; card.innerHTML = `<div class="k">FORM I-20 · RECEIVED</div><div class="t">Reading a redacted copy</div><div class="m">${ev.boxes} identifying item${ev.boxes === 1 ? '' : 's'} removed by code before any model saw it <span class="boxes">${'<i></i>'.repeat(Math.min(5, ev.boxes))}</span></div>`; if (state.mode !== 'speaking') setMode('thinking'); }
+  else if (ev.stage === 'read') { state.i20 = { ...ev.fields, boxes: ev.boxes, matches: ev.matches }; const f = ev.fields; const end = f.program_end ? human(f.program_end) : 'not found';
+    const verdict = ev.matches === true ? '<b>matches what the student said</b>' : ev.matches === false ? `<b class="no">differs from what was said (${esc(human(ev.stated))})</b>` : 'no program end date was stated yet';
+    card.innerHTML = `<div class="k">FORM I-20 · ON FILE</div><div class="t">Program ends ${esc(end)}</div><div class="m">${esc([f.education_level, f.major].filter(Boolean).join(' · '))}${f.program_start ? ` · from ${esc(human(f.program_start))}` : ''}<br>Read by Spark from a redacted copy · ${verdict}</div>`; if (state.mode === 'thinking') setMode('listening'); }
+  else if (ev.stage === 'error') { card.innerHTML = `<div class="k">FORM I-20</div><div class="m">Could not read the document: ${esc(ev.message)}</div>`; $('#doc-add').style.display = ''; }
+}
+async function uploadI20(file) {
+  if (!state.sessionId) { setStatus('start the meeting first', 'warn'); return; }
+  $('#doc-add').textContent = 'Sending…';
+  const r = await fetch(`${RELAY_HTTP}/i20?session=${encodeURIComponent(state.sessionId)}`, { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: file });
+  if (!r.ok) { const j = await r.json().catch(() => ({})); setStatus(`I-20: ${j.error || r.status}`, 'warn'); }
+}
+window.henryUploadI20 = uploadI20;
+$('#doc-add').onclick = () => $('#doc-file').click();
+$('#doc-file').onchange = (e) => { const f = e.target.files[0]; if (f) uploadI20(f); };
+
 // ---------- checklist + questions ----------
 function addCheck({ action, deadline, owner, rule, source }) {
   const key = `${deadline || 'none'}|${owner}`; const prev = state.checks.get(key);
@@ -176,7 +197,7 @@ function applyRecord(rec) {
 async function handle(ev) {
   switch (ev.type) {
     case 'relay':
-      if (ev.status === 'ready') { setStatus('listening'); setMode('listening'); if (state.phase === 'idle') { state.phase = 'intro'; document.body.dataset.phase = 'intro'; await speak('open'); if (MODE === 'replay' && state.audio) { state.ws?.send(JSON.stringify({ type: 'mark', name: 'audio_start' })); state.audio.play(); } } }
+      if (ev.status === 'ready') { state.sessionId = ev.sessionId || ''; setStatus('listening'); setMode('listening'); if (MODE !== 'sample') $('#doc-add').style.display = ''; if (state.phase === 'idle') { state.phase = 'intro'; document.body.dataset.phase = 'intro'; await speak('open'); if (MODE === 'replay' && state.audio) { state.ws?.send(JSON.stringify({ type: 'mark', name: 'audio_start' })); state.audio.play(); } } }
       else if (ev.status === 'upstream_closed' && state.phase === 'review') { /* normal end */ }
       else if (ev.status === 'capped') setStatus('Henry has reached today\'s session limit. Watch the sample appointment instead.', 'warn');
       else if (ev.status === 'time_cap') setStatus('20-minute limit reached; finishing the record', 'warn');
@@ -188,6 +209,7 @@ async function handle(ev) {
     case 'partial': $('#live').textContent = ev.text ? `${ROLE_LABEL[ev.role] || ev.role}: ${ev.text}` : ''; break;
     case 'turn': state.turns.push(ev); renderTranscript(); $('#live').textContent = ''; break;
     case 'dates': applyDates(ev); break;
+    case 'i20': renderDoc(ev); break;
     case 'activity': activity(ev); break;
     case 'record': state.record = ev.record; applyRecord(ev.record); $('#usage').textContent = `${ev.usage.calls} Spark calls`; if (state.mode === 'thinking') setMode(state.running ? 'listening' : 'idle'); break;
     case 'speechStart': if (state.mode === 'listening') setMode('hearing'); break;

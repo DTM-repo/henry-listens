@@ -9,8 +9,12 @@
     "test:voice": "node --env-file=.env relay/send-file.mjs"
   },
   "license": "MIT",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
     "ws": "^8.18.0"
   }
 }

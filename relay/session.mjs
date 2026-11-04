@@ -50,6 +50,18 @@ export class Session extends EventEmitter {
       this.agent.addTurn(turn.role, red);
     }
   }
+  /** fields Spark read off the redacted I-20; the I-20 is the authoritative program end date */
+  attachI20(fields, boxes) {
+    const stated = this.facts.f.program_end; const onForm = /^\d{4}-\d{2}-\d{2}$/.test(fields.program_end || '') ? fields.program_end : '';
+    const matches = onForm && stated ? (stated.length === 7 ? onForm.startsWith(stated) : onForm === stated) : null;
+    if (onForm) this.facts.f.program_end = onForm;
+    this.i20 = { ...fields, boxes, matches, stated: stated || '' };
+    this.emit('out', { type: 'i20', stage: 'read', fields, boxes, matches, stated: stated || '' });
+    if (onForm) { try { const dates = computeDates(this.facts.args()); this.emit('out', { type: 'dates', ...dates, hint: this.facts.hint(), from: 'i20' }); } catch (e) { this.log('dates error', e.message); } }
+    this.agent.hint = this.facts.hint() + `; I-20 on file (read from a redacted copy): program ${fields.program_start || '?'} to ${onForm || '?'}, ${fields.education_level || ''} ${fields.major || ''}` + (matches === false ? ` — DIFFERS from the program end date the student stated (${stated})` : matches ? ' — matches what the student stated' : '');
+    this.log('I-20 read:', onForm, 'matches:', matches);
+    if (this.phase === 'meeting' && this.agent.turns.length) this.agent.kick();
+  }
   begin() { if (this.phase !== 'intro') return; this.phase = 'meeting'; this.emit('out', { type: 'phase', phase: 'meeting', roles: Object.fromEntries(this.roles) }); this.log('meeting begins', JSON.stringify(Object.fromEntries(this.roles))); }
   end() { if (this.phase === 'review') return; this.phase = 'review'; this.emit('out', { type: 'phase', phase: 'review' }); this.agent.final = true; if (this.agent.turns.length) this.agent.kick(); }
 }
