@@ -4,82 +4,122 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Henry Listens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display:ital@0;1&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%23365e4d'/><circle cx='50' cy='50' r='18' fill='%23f8f7f3' opacity='.9'/></svg>">
 <style>
-  :root { --bg:#0e1014; --panel:#161922; --panel2:#1c2029; --ink:#e9ebf1; --mute:#8c94a8; --line:#262b38; --ok:#4cd98a; --warn:#ff7a7a; --accent:#7aa7ff;
-    --Employment:#f6b26b; --Enrollment:#8fd3ff; --Program_end:#c9a0ff; --Travel:#7fe3c6; --Status:#ff9db0; --Other:#b8bfcf; }
-  * { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif }
-  header { display:flex; gap:14px; align-items:center; padding:12px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap }
-  h1 { font-size:17px; margin:0; font-weight:650 } h1 small { color:var(--mute); font-weight:400; margin-left:8px }
-  button { background:var(--accent); color:#06101c; border:0; border-radius:8px; padding:8px 16px; font-weight:600; cursor:pointer } button.stop { background:var(--warn); color:#1c0606 } button.ghost { background:transparent; color:var(--mute); border:1px solid var(--line) }
-  #status { color:var(--mute); font-size:13px } #status.ok { color:var(--ok) } #status.warn { color:var(--warn) }
-  .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--mute); font-size:13px }
-  #meter { display:inline-block; width:70px; height:8px; background:var(--line); border-radius:4px; overflow:hidden } #level { display:block; height:100%; width:0; background:var(--ok); transition:width .1s }
-  main { display:grid; grid-template-columns:1fr 340px; gap:18px; padding:18px 20px; max-width:1300px; margin:0 auto }
-  @media (max-width:900px) { main { grid-template-columns:1fr } }
-  section { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px } section h2 { margin:0 0 10px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--mute) }
-  .empty { color:var(--mute); font-style:italic }
-  /* Henry */
-  #henry { display:flex; gap:14px; align-items:flex-start; grid-column:1/-1 }
-  #henry-mark { width:46px; height:46px; border-radius:50%; background:radial-gradient(circle at 35% 35%, #9ec1ff, #3b63c4 70%); box-shadow:0 0 0 0 rgba(122,167,255,.5); flex:none; transition:box-shadow .3s }
-  #henry-mark.hearing { animation:breathe 1.2s ease-in-out infinite } #henry-mark.busy { animation:spin 1.1s linear infinite; background:conic-gradient(from 0deg,#9ec1ff,#3b63c4,#9ec1ff) }
-  @keyframes breathe { 0%,100% { box-shadow:0 0 0 0 rgba(122,167,255,.45) } 50% { box-shadow:0 0 0 14px rgba(122,167,255,0) } } @keyframes spin { to { transform:rotate(360deg) } }
-  #henry-says { font-size:16px; line-height:1.55 } #roles { color:var(--mute); font-size:13px; margin-top:4px }
+  :root { --paper:#f8f7f3; --panel:#f0f1e9; --card:#fffef8; --ink:#293b32; --muted:#747b71; --soft:#9aa193; --line:#dedfd5; --sage:#526e5b; --deep:#365e4d; --leaf:#77906a; --coral:#bc3f35; --coral-soft:#fce8e6; --amber:#a86100; --amber-soft:#fff2d8; --ok:#0b7954; --ok-soft:#e4f5ed; --blue:#315fd6; --cyan:#007f91;
+    --cat-Employment:#a86100; --cat-Enrollment:#007f91; --cat-Program_end:#526e5b; --cat-Travel:#315fd6; --cat-Status:#bc3f35; --cat-Other:#747b71; }
+  * { box-sizing:border-box } html,body { height:100% }
+  body { margin:0; background:var(--paper); color:var(--ink); font:14px/1.55 'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif; -webkit-font-smoothing:antialiased }
+  button { font:inherit; cursor:pointer; border:0; background:none; color:inherit; -webkit-tap-highlight-color:transparent }
+  .serif { font-family:'DM Serif Display',Georgia,serif; font-weight:400 }
+  .eyebrow { font-size:9px; letter-spacing:1.8px; font-weight:600; color:#6f7d67; text-transform:uppercase }
+  /* header */
+  header { height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 4%; border-bottom:1px solid var(--line) }
+  .brand { font-family:'DM Serif Display',Georgia,serif; font-size:24px; letter-spacing:-.8px; display:flex; align-items:baseline; gap:10px } .brand i { display:inline-block; width:6px; height:6px; border-radius:50%; background:#c1a171 } .brand small { font-family:'DM Sans'; font-size:12px; color:var(--soft); letter-spacing:0 }
+  .controls { display:flex; gap:10px; align-items:center } #status { font-size:12px; color:var(--muted); margin-right:6px } #status.warn { color:var(--coral) }
+  .pill { border:1px solid #d4d9cc; background:#fffefb; border-radius:20px; padding:8px 14px; font-size:12px; color:#5b6a58; display:flex; align-items:center; gap:7px } .pill.primary { background:var(--deep); color:#fff; border-color:var(--deep) } .pill.stop { background:#f2eade; color:#8b654c; border-color:#e6d6c0 } .pill:disabled { opacity:.45; cursor:default }
+  #clock { font-variant-numeric:tabular-nums; font-size:12px; color:var(--soft) } #usage { font-size:11px; color:var(--soft) }
+  label.sw { display:flex; gap:5px; align-items:center; font-size:11px; color:var(--soft) }
+  /* stage */
+  main { max-width:1280px; margin:0 auto; padding:18px 4% 30px; display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:34px; align-items:start }
+  @media (max-width:900px) { main { grid-template-columns:1fr; gap:22px } }
+  #henry { grid-column:1/-1; display:flex; gap:18px; align-items:center; min-height:84px }
+  .orb { position:relative; width:72px; height:72px; display:grid; place-items:center; flex:none }
+  .orb span { position:absolute; inset:0; border-radius:50%; background:#7f9371; opacity:.18; transform:scale(.55) } .orb span:nth-child(2) { opacity:.28; transform:scale(.4) } .orb span:nth-child(3) { opacity:1; transform:scale(.24); background:#365e4d }
+  .mode-listening .orb span:nth-child(1) { animation:orb-breathe 3.2s ease-in-out infinite } .mode-listening .orb span:nth-child(2) { animation:orb-breathe 3.2s ease-in-out .4s infinite }
+  .mode-hearing .orb span:nth-child(1) { animation:orb-hear 1.1s ease-in-out infinite } .mode-hearing .orb span:nth-child(2) { animation:orb-hear 1.1s ease-in-out .2s infinite } .mode-hearing .orb span:nth-child(3) { background:#2f6a4f }
+  .mode-thinking .orb span { animation:orb-think 1.6s linear infinite }
+  .mode-speaking .orb span:nth-child(1) { animation:orb-speak .9s ease-in-out infinite } .mode-speaking .orb span:nth-child(2) { animation:orb-speak .9s ease-in-out .15s infinite } .mode-speaking .orb span:nth-child(3) { animation:orb-speak .9s ease-in-out .3s infinite; transform:scale(.3) }
+  @keyframes orb-breathe { 50% { transform:scale(.62); opacity:.26 } } @keyframes orb-hear { 50% { transform:scale(.75); opacity:.34 } } @keyframes orb-think { 0% { transform:scale(.5) rotate(0); opacity:.2 } 50% { opacity:.3 } 100% { transform:scale(.5) rotate(360deg); opacity:.2 } } @keyframes orb-speak { 50% { transform:scale(.8); opacity:.4 } }
+  #henry-says { font-family:'DM Serif Display',Georgia,serif; font-size:21px; line-height:1.3; letter-spacing:-.3px; color:#293b32; max-width:820px }
+  #henry-sub { font-size:12px; color:var(--muted); margin-top:5px; min-height:18px; display:flex; gap:14px; flex-wrap:wrap } #roles { color:#6f7d67 } #live { font-style:italic; color:#8a9081 } #activity { font-family:ui-monospace,Menlo,monospace; font-size:11px; color:#8d9386; transition:opacity .4s }
+  section h2 { margin:0 0 12px; font-size:9px; letter-spacing:1.8px; font-weight:600; color:#6f7d67; text-transform:uppercase; display:flex; justify-content:space-between; align-items:baseline } section h2 em { font-style:normal; font-weight:400; letter-spacing:0; text-transform:none; color:var(--soft); font-size:11px }
+  .empty { font-family:'DM Serif Display',Georgia,serif; font-style:italic; color:#a2ab96; font-size:15px }
   /* cards */
-  #cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px }
-  .card { background:var(--panel2); border:1px solid var(--line); border-left:4px solid var(--Other); border-radius:10px; padding:12px 14px; transition:transform .5s, opacity .5s } .card.enter { transform:translateY(18px) scale(.97); opacity:0 } .card.pulse { box-shadow:0 0 0 3px rgba(122,167,255,.35) }
-  .card .cat { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--mute) } .card h3 { margin:4px 0 6px; font-size:15px } .card p { margin:0 0 8px; color:#c9cfdd; font-size:13.5px }
-  .card[data-id] { border-left-color:var(--Other) }
-  .cites { display:flex; flex-wrap:wrap; gap:6px } .cite { font-size:12px; background:#23314d; color:#bcd2ff; padding:2px 8px; border-radius:999px; text-decoration:none } .cite.none { background:#3a2a2a; color:#f0b0b0 }
-  .st { margin-top:8px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute) } .st.resolved { color:var(--ok) } .st.needs_followup { color:var(--Employment) }
-  /* timeline */
-  #timeline { position:relative; padding-top:6px } .tl-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:center; margin:6px 0 } .tl-track { height:10px; background:var(--line); border-radius:5px; position:relative } .tl-bar { position:absolute; top:0; height:100%; background:var(--accent); border-radius:5px; min-width:4px; animation:grow .7s ease-out } .tl-bar.mark { background:var(--Program_end) } .tl-bar.stated { background:var(--mute) }
-  @keyframes grow { from { transform:scaleX(0); transform-origin:left } } .tl-label { font-size:13px } .dim { color:var(--mute) } .tl-today { position:absolute; top:0; bottom:0; width:1px; background:var(--ok); opacity:.6 }
-  /* checklist */
-  #checklist, #questions { margin:0; padding-left:0; list-style:none } #checklist li, #questions li { padding:6px 0; border-bottom:1px solid var(--line); font-size:14px } .owner { font-size:11px; text-transform:uppercase; letter-spacing:.06em; padding:1px 6px; border-radius:4px; background:var(--line); margin-right:6px } .owner.adviser { color:var(--accent) } .owner.student { color:var(--Employment) } .dl { color:var(--mute); font-size:12px; margin-left:6px }
-  /* activity */
-  #activity { font:12px/1.5 ui-monospace,Menlo,monospace; color:var(--mute) } .act.tool { color:#bcd2ff } .act.error { color:var(--warn) }
-  /* drawer */
-  #drawer { position:fixed; right:0; top:0; bottom:0; width:min(520px,100%); background:var(--panel); border-left:1px solid var(--line); transform:translateX(100%); transition:transform .3s; padding:18px; overflow:auto; z-index:5 } body.drawer-open #drawer { transform:none }
-  #transcript .turn { display:grid; grid-template-columns:48px 70px 1fr; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); font-size:14px } .turn .t { color:var(--mute); font-variant-numeric:tabular-nums } .turn .who { font-weight:600 } .turn.adviser .who { color:var(--accent) } .turn.student .who { color:var(--Employment) } mark { background:#2b3a5a; color:#cfe0ff; border-radius:3px; padding:0 3px }
-  #live { color:var(--mute); font-style:italic; min-height:1.5em; font-size:13px }
-  .note { color:var(--mute); font-size:12.5px; grid-column:1/-1 }
-  label.sw { color:var(--mute); font-size:13px; display:flex; gap:6px; align-items:center }
+  #cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; min-height:160px }
+  .card { position:relative; background:var(--card); border:1px solid #e2e5d9; border-radius:14px; padding:14px 16px 12px; box-shadow:0 3px 14px #2a40270a; transition:transform .75s cubic-bezier(.2,.75,.2,1), opacity .5s, box-shadow .4s, border-color .4s; will-change:transform }
+  .card.enter { transform:var(--from); opacity:0 } .card.pulse { box-shadow:0 0 0 3px #c9d6bf, 0 6px 20px #2a402714 }
+  .card .cat { font-size:9px; letter-spacing:1.5px; font-weight:600; text-transform:uppercase; color:var(--c, var(--muted)); display:flex; align-items:center; gap:6px } .card .cat:before { content:''; width:6px; height:6px; border-radius:50%; background:var(--c, var(--muted)) }
+  .card h3 { font-family:'DM Serif Display',Georgia,serif; font-weight:400; font-size:18px; line-height:1.2; letter-spacing:-.3px; margin:6px 0 6px } .card p.detail { margin:0 0 10px; font-size:12.5px; line-height:1.55; color:#4a564d }
+  .cites { display:flex; flex-wrap:wrap; gap:6px; min-height:4px } .cite { font-size:11px; background:#e7eddc; color:#3f5a46; padding:3px 9px; border-radius:999px; text-decoration:none; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; animation:stamp .55s cubic-bezier(.2,.9,.3,1.3) both } .cite.rule { background:#eef0e8; color:#6f7d67; font-family:ui-monospace,Menlo,monospace; font-size:10px } .cite.none { background:#f2eade; color:#8b654c }
+  @keyframes stamp { 0% { transform:scale(1.5) rotate(-5deg); opacity:0 } 60% { transform:scale(.96) rotate(1deg); opacity:1 } 100% { transform:none } }
+  .st { margin-top:9px; font-size:9px; letter-spacing:1.4px; text-transform:uppercase; font-weight:600; color:var(--soft); display:flex; align-items:center; gap:6px } .st.resolved { color:var(--ok) } .st.needs_followup { color:var(--coral) }
+  .st svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round } .st.resolved path { stroke-dasharray:1; stroke-dashoffset:1; animation:draw .6s ease-out .1s forwards } @keyframes draw { to { stroke-dashoffset:0 } }
+  .card.needs_followup { border-color:#efc9c4; background:#fffaf8 } .card.resolved.was-flag { border-color:#cfe3d7 }
+  .card .rv { display:flex; gap:6px; margin-top:10px } .card .rv button { border:1px solid #d4d9cc; border-radius:14px; padding:3px 10px; font-size:11px; color:#5b6a58; background:#fffefb } .card .rv button.on { background:var(--deep); color:#fff; border-color:var(--deep) } .card .rv.done { font-size:9px; letter-spacing:1.4px; text-transform:uppercase; font-weight:600; color:var(--ok) }
+  .card.struck { opacity:.35 } .card.struck h3, .card.struck p { text-decoration:line-through } .card .detail[contenteditable="true"] { outline:1px solid #9fac93; background:#fff; padding:4px; border-radius:4px }
+  /* right column */
+  aside { display:flex; flex-direction:column; gap:22px }
+  .companion { background:var(--panel); border:1px solid #e2e5d9; border-radius:17px; padding:20px 22px 14px; position:relative }
+  .date-story { position:relative; margin:4px 0 0 } .story-point { display:flex; gap:16px; position:relative; padding:0 0 18px 3px } .story-point:before { content:''; position:absolute; left:7px; top:15px; bottom:0; width:1px; background:#b8c8ad } .story-point:last-child:before { background:linear-gradient(#b8c8ad,transparent) }
+  .story-dot { display:block; width:9px; height:9px; border-radius:50%; background:#77906a; border:1px solid #617c56; margin-top:12px; flex-shrink:0; position:relative; z-index:1; transition:box-shadow .4s,background .4s }
+  .story-date-card { min-width:0; transition:opacity .35s,transform .35s } .story-kind { font-size:8px; letter-spacing:1.2px; color:#8a977a; font-weight:600 } .story-date { display:block; padding:3px 0 1px; font-family:'DM Serif Display',Georgia,serif; font-size:19px; line-height:1.25; letter-spacing:-.3px } .story-label { font-family:'Caveat',cursive; font-size:20px; line-height:1.2; color:#536b48; margin:0; overflow-wrap:anywhere }
+  .story-range .story-dot { border:1px dashed #859977; background:#e3eadb; box-shadow:0 -6px 0 2px #cbd9bf88,0 6px 0 2px #cbd9bf88 } .story-receiving .story-dot { background:transparent; border-color:#b5c5a9 } .story-receiving .story-date-card { opacity:.25 } .story-landed:not(.story-receiving) .story-dot { animation:story-land .7s ease-out } @keyframes story-land { 0% { box-shadow:0 0 0 0 #8ca17d99 } 100% { box-shadow:0 0 0 12px #8ca17d00 } }
+  .story-gone .story-date-card { opacity:.4 } .story-gone .story-date { text-decoration:line-through; color:var(--soft) }
+  .empty-timeline { display:flex; gap:19px; align-items:center; margin:12px 0 6px } .empty-line { height:110px; position:relative; width:1px; background:linear-gradient(#d6decd,#cdd7c1,#e6e9df); margin:0 8px } .empty-line i { position:absolute; width:7px; height:7px; border:1px solid #a8b498; background:var(--panel); border-radius:50%; left:-3px } .empty-line i:first-child { top:5px } .empty-line i:nth-child(2) { top:52px; background:#c1cdb4 } .empty-line i:last-child { bottom:4px }
+  /* calendar journey (ported from the F-1 Journey app) */
+  .calendar-journey { position:fixed; z-index:35; height:360px; pointer-events:none; transform-origin:center; transition:transform .58s cubic-bezier(.65,0,.28,1),opacity .4s; will-change:transform }
+  .journey-paper { position:absolute; inset:0; border:1px solid #d6dccb; border-radius:18px; background:#fffef8; box-shadow:0 18px 55px #2a402727,0 3px 10px #2a40270b; overflow:hidden; transition:border-radius .55s,background .5s; animation:journey-enter .3s ease-out }
+  .journey-year { position:absolute; inset:22px; transition:opacity .35s } .journey-year-heading { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px } .journey-year-heading>span { font-size:8px; letter-spacing:1.8px; color:#879179 } .journey-year-heading>b { font-family:'DM Serif Display',Georgia,serif; font-size:32px; font-weight:400; color:#344d35 }
+  .journey-year-months { display:grid; grid-template-columns:repeat(3,1fr); gap:10px 14px; transform-origin:var(--month-x) var(--month-y); transition:transform .65s cubic-bezier(.2,.7,.2,1),opacity .35s } .journey-year-months>div { padding:5px; border-radius:5px; transition:background .3s; min-height:46px } .journey-year-months strong { display:block; font-size:8px; letter-spacing:.4px; text-align:center; margin-bottom:5px; font-weight:500; color:#829075 }
+  .journey-mini-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; height:29px; align-content:start } .journey-mini-grid span { display:grid; place-items:center; height:3px } .journey-mini-grid i { width:2px; height:2px; background:#c2cbb7; border-radius:50% } .journey-year-months .journey-chosen-month { background:#e2ebd8; box-shadow:0 0 0 1px #bfcfb1 } .journey-chosen-month strong { color:#36502e } .journey-chosen-month .journey-mini-grid i { background:#8aa579 }
+  .journey-month { position:absolute; inset:23px 22px; opacity:0; transform:scale(.8); transition:opacity .35s .12s,transform .5s cubic-bezier(.2,.7,.2,1) } .journey-month-heading { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:16px } .journey-month-heading>span { font-family:'DM Serif Display',Georgia,serif; font-size:32px; color:#334b33 } .journey-month-heading>small { font-size:13px; color:#9a9e8d }
+  .journey-days { display:grid; grid-template-columns:repeat(7,1fr); gap:2px 0 } .journey-days small { font-size:9px; text-align:center; color:#9aa28f; height:16px } .journey-days>span { height:24px; display:grid; place-items:center; position:relative; font-size:12px; color:#78836c; isolation:isolate } .journey-selected-day { color:#2e4d2c!important; font-weight:600 }
+  .journey-ink-circle { position:absolute; inset:-4px -5px; width:calc(100% + 10px); height:calc(100% + 8px); overflow:visible } .journey-ink-circle path { fill:none; stroke:#658454; stroke-width:1.6; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; transition:stroke-dashoffset .45s ease-out }
+  .journey-uncertain-day:before { content:''; position:absolute; inset:2px 0; background:#dbe8ce; opacity:0; z-index:-1; transition:opacity .5s; border-radius:3px }
+  .journey-handwriting { position:relative; display:table; max-width:100%; margin:12px auto 0; font-family:'Caveat',cursive; font-size:27px; line-height:1.2; color:#4c6740; transform:rotate(-3deg); clip-path:inset(0 100% 0 0); transition:clip-path .65s ease-in-out; overflow-wrap:anywhere; text-align:center } .journey-handwriting svg { display:block; width:100%; height:12px; margin-top:-3px } .journey-handwriting path { fill:none; stroke:#a2b58c; stroke-width:1.3; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; transition:stroke-dashoffset .5s .25s }
+  .journey-precision { text-align:center; font-size:9px; color:#87927d; letter-spacing:.3px; margin-top:8px; opacity:0; transition:opacity .3s }
+  .phase-zoom .journey-year-months,.phase-date .journey-year-months,.phase-ink .journey-year-months,.phase-land .journey-year-months { transform:translate(calc(50% - var(--month-x)),calc(50% - var(--month-y))) scale(3.2); opacity:0 }
+  .phase-zoom .journey-year-heading,.phase-date .journey-year-heading,.phase-ink .journey-year-heading,.phase-land .journey-year-heading { opacity:0; transition:opacity .25s }
+  .phase-zoom .journey-month,.phase-date .journey-month,.phase-ink .journey-month,.phase-land .journey-month { opacity:1; transform:scale(1) }
+  .phase-date .journey-ink-circle path,.phase-ink .journey-ink-circle path { stroke-dashoffset:0 } .phase-date .journey-uncertain-day:before,.phase-ink .journey-uncertain-day:before { opacity:1 }
+  .phase-ink .journey-handwriting { clip-path:inset(0 0 0 0) } .phase-ink .journey-handwriting path { stroke-dashoffset:0 } .phase-ink .journey-precision { opacity:1 }
+  .phase-land { transform:translate(var(--landing-x),var(--landing-y)) scale(.026); opacity:.8 } .phase-land .journey-paper { border-radius:50%; background:#77906a } .phase-land .journey-month { opacity:0; transition:opacity .2s }
+  @keyframes journey-enter { from { opacity:0; transform:translateY(9px) scale(.96) } to { opacity:1; transform:none } }
+  /* checklist, questions */
+  ul.plain { list-style:none; margin:0; padding:0 } .check { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid #e1e4da; font-size:12.5px; line-height:1.5; color:#334d40; animation:note-arrive .4s ease-out } .check:last-child { border-bottom:0 }
+  .check .box { width:13px; height:13px; border:1.5px solid #8c9d7b; border-radius:3px; margin-top:4px; flex:none } .check .who { font-size:8px; letter-spacing:1.2px; font-weight:600; color:#8a977a; text-transform:uppercase; display:block } .check .dl { color:#586e46; font-size:11px }
+  .q { padding:6px 0 6px 14px; position:relative; font-size:12.5px; color:#4a564d; line-height:1.5; animation:note-arrive .4s ease-out } .q:before { content:''; position:absolute; left:0; top:13px; width:6px; height:6px; border-radius:50%; background:#c1cdb4 }
+  @keyframes note-arrive { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:none } }
   /* review + export */
-  .card .rv { display:flex; gap:6px; margin-top:10px } .card .rv button { background:transparent; color:var(--mute); border:1px solid var(--line); padding:3px 10px; font-size:12px; border-radius:6px } .card .rv button.on { background:var(--accent); color:#06101c; border-color:var(--accent) } .card .rv.done { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ok) }
-  .card.struck { opacity:.35 } .card.struck h3, .card.struck p { text-decoration:line-through } .card .detail[contenteditable="true"] { outline:1px solid var(--accent); background:#10131a; padding:4px; border-radius:4px }
-  #review-bar { grid-column:1/-1; display:flex; gap:12px; align-items:center; flex-wrap:wrap; background:#15201a; border-color:#2a4a36 } #review-bar p { margin:0; flex:1; min-width:240px } #exports { display:flex; gap:8px; flex-wrap:wrap }
-  #sample { background:transparent; color:var(--accent); border:1px solid var(--accent) }
+  #review-bar { grid-column:1/-1; display:none; gap:16px; align-items:center; flex-wrap:wrap; background:#fffef8; border:1px solid #d6dccb; border-radius:17px; padding:16px 22px; box-shadow:0 10px 35px #2a402714 } #review-bar.on { display:flex }
+  #review-bar p { margin:0; flex:1; min-width:220px; font-family:'DM Serif Display',Georgia,serif; font-size:18px; letter-spacing:-.3px } #exports { display:none; gap:8px; flex-wrap:wrap } #exports.on { display:flex }
+  .signature { font-family:'Caveat',cursive; font-size:30px; color:#4c6740; transform:rotate(-2deg); position:relative; display:none; clip-path:inset(0 100% 0 0); transition:clip-path .9s ease-in-out } .signature.on { display:block; clip-path:inset(0 0 0 0) } .signature svg { display:block; width:100%; height:12px; margin-top:-4px } .signature path { fill:none; stroke:#a2b58c; stroke-width:1.3; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; transition:stroke-dashoffset .6s .5s } .signature.on path { stroke-dashoffset:0 }
+  /* evidence drawer */
+  #drawer { position:fixed; right:0; top:0; bottom:0; width:min(520px,100%); background:#fffef8; border-left:1px solid var(--line); transform:translateX(100%); transition:transform .3s; padding:22px 24px; overflow:auto; z-index:40; box-shadow:-10px 0 40px #2a402714 } body.drawer-open #drawer { transform:none }
+  #drawer h2 { font-family:'DM Serif Display',Georgia,serif; font-weight:400; font-size:22px; margin:0 0 4px } #drawer .hint { font-size:12px; color:var(--muted); margin:0 0 14px }
+  .turn { display:grid; grid-template-columns:42px 62px 1fr; gap:8px; padding:7px 0; border-bottom:1px solid #ebeee4; font-size:13px } .turn .t { color:var(--soft); font-variant-numeric:tabular-nums; font-size:11px; padding-top:2px } .turn .who { font-size:9px; letter-spacing:1.4px; font-weight:600; text-transform:uppercase; padding-top:3px; color:#7e8b74 } .turn.student .who { color:#a86100 } mark { background:#e7eddc; color:#2f4a36; border-radius:3px; padding:0 4px; font-weight:500 }
+  .note { grid-column:1/-1; font-size:11px; color:var(--soft); line-height:1.6; margin:4px 0 0 }
+  .idle-hint { font-size:13px; color:var(--muted); margin-top:6px }
 </style>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%233b63c4'/><circle cx='38' cy='38' r='22' fill='%239ec1ff' opacity='.6'/></svg>">
-<script src="/relay-config.js"></script>
 </head>
-<body data-phase="idle">
+<body data-phase="idle" class="mode-idle">
 <header>
-  <h1>Henry Listens <small>an advising appointment becomes the compliance record</small></h1>
-  <button id="toggle">Start</button>
-  <button id="sample">Watch a sample appointment</button>
-  <button id="begin" class="ghost" style="display:none">Skip intro</button>
-  <label class="sw"><input type="checkbox" id="mute"> mute Henry</label>
-  <span id="status">idle</span>
-  <span class="meta"><span id="meter"><span id="level"></span></span><span id="clock">00:00</span><span id="usage"></span><button id="drawer-toggle" class="ghost">Evidence</button></span>
+  <div class="brand">Henry Listens<i></i><small>an advising appointment becomes the compliance record</small></div>
+  <div class="controls">
+    <span id="status">idle</span><span id="clock">00:00</span><span id="usage"></span>
+    <label class="sw"><input type="checkbox" id="mute"> mute Henry</label>
+    <button id="drawer-toggle" class="pill">Evidence</button>
+    <button id="sample" class="pill">Watch a sample appointment</button>
+    <button id="begin" class="pill" style="display:none">Skip intro</button>
+    <button id="toggle" class="pill primary">Start</button>
+  </div>
 </header>
 <main>
-  <section id="henry"><div id="henry-mark"></div><div><div id="henry-says">Press Start when everyone is in the room, or watch a sample appointment.</div><div id="roles"></div><div id="live"></div></div></section>
-  <section id="review-bar" style="display:none"><p>Shared review: confirm, edit or strike each card together. Nothing is exported until the adviser signs.</p><button id="sign">Adviser signs</button><div id="exports" style="display:none"><button class="ghost" data-doc="case_note">Case note PDF</button><button class="ghost" data-doc="student_summary">Student summary PDF</button><button class="ghost" data-doc="sevis_checklist">SEVIS checklist PDF</button><button class="ghost" data-doc="json">JSON</button></div></section>
-  <section id="stage"><h2>Issues raised</h2><div id="cards-empty" class="empty">Cards appear as issues come up.</div><div id="cards"></div></section>
+  <div id="henry"><div class="orb" aria-hidden="true"><span></span><span></span><span></span></div><div><div id="henry-says">Press Start when everyone is in the room.</div><div id="henry-sub"><span id="roles"></span><span id="live"></span><span id="activity"></span></div></div></div>
+  <section id="review-bar"><p>Walk through it together. Nothing leaves until the adviser signs.</p><div class="signature" id="signature"><span></span><svg viewBox="0 0 200 12"><path pathLength="1" d="M3 8 Q92 0 194 7"/></svg></div><button id="sign" class="pill primary">Adviser signs</button><div id="exports"><button class="pill" data-doc="case_note">Case note</button><button class="pill" data-doc="student_summary">Student summary</button><button class="pill" data-doc="sevis_checklist">SEVIS checklist</button><button class="pill" data-doc="json">JSON</button></div></section>
+  <section id="stage"><h2>Issues raised <em id="cards-count"></em></h2><div id="cards"><div id="cards-empty" class="empty">Issues appear here as they come up, each with its source.</div></div></section>
   <aside>
-    <section><h2>Dates</h2><div id="timeline"></div></section>
-    <section style="margin-top:14px"><h2>SEVIS checklist</h2><ul id="checklist"></ul></section>
-    <section style="margin-top:14px"><h2>Still to confirm</h2><ul id="questions"></ul></section>
-    <section style="margin-top:14px"><h2>Henry is doing</h2><div id="activity"></div></section>
+    <section class="companion" id="dates"><h2>The dates <em>computed, not guessed</em></h2><div id="timeline"><div class="empty-timeline"><div class="empty-line"><i></i><i></i><i></i></div><span class="empty">Dates land here the moment they are said.</span></div></div></section>
+    <section class="companion"><h2>SEVIS checklist</h2><ul id="checklist" class="plain"></ul><div id="checklist-empty" class="empty">What has to happen, by when, and whose job it is.</div></section>
+    <section class="companion" id="qwrap" style="display:none"><h2>Still to confirm</h2><ul id="questions" class="plain"></ul></section>
   </aside>
-  <p class="note">Synthetic demo. No real student. Names and ID numbers are replaced in code before any model sees a word; the relay holds the API key; every regulatory sentence links to a HenryKnows source; every date comes from compute_dates. Meta Muse Voice Transcribe + Spark 1.3.</p>
+  <p class="note">Synthetic demo, no real student. Names and ID numbers are replaced in code before any model hears a word. Every regulatory sentence links to a HenryKnows source. Every date comes from compute_dates. Meta Muse Voice Transcribe + Spark 1.3.</p>
 </main>
-<div id="drawer"><h2 style="margin-top:0">Evidence — redacted transcript <span id="turn-count" style="color:var(--mute);font-weight:400;font-size:13px"></span></h2><div id="transcript"></div></div>
-<script>
-  // category colors by data attribute (set after render)
-  new MutationObserver(() => document.querySelectorAll('.card').forEach((c) => { const cat = c.querySelector('.cat')?.textContent.replace(' ', '_'); if (cat) c.style.borderLeftColor = `var(--${cat})`; })).observe(document.body, { subtree: true, childList: true, characterData: true });
-</script>
+<div id="drawer"><h2>Evidence</h2><p class="hint">The transcript, already redacted. <span id="turn-count"></span></p><div id="transcript"></div></div>
+<script src="/relay-config.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

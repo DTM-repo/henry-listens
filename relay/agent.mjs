@@ -8,13 +8,15 @@ import { henryTools, runHenryTool } from './henry.mjs';
 import { computeDatesTool, runComputeDates } from './dates.mjs';
 
 const SCHEMA = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '..', 'docs', 'record.schema.json'), 'utf8'));
+// during the meeting the model only maintains the live parts (cards, timeline, checklist, questions); the note and summary are written once at the end
+const LIVE = structuredClone(SCHEMA); for (const k of ['case_note', 'student_summary']) delete LIVE.properties[k]; LIVE.required = LIVE.required.filter((k) => k !== 'case_note' && k !== 'student_summary');
 const BASE = 'https://api.meta.ai/v1';
 const MODEL = process.env.AGENT_MODEL || 'muse-spark-1.3';
 
 const INSTRUCTIONS = `You are Henry Listens, a compliance note-taker sitting in on an F-1 international-student advising appointment at a U.S. university. You hear the conversation as it happens (transcript so far, speakers labeled by role). Identifiers are already replaced by tokens like [STUDENT] or [SEVIS_ID]; never try to guess what they were.
 
-Your job after each turn: update the record (strict JSON per the schema).
-- cards: one card per distinct issue the conversation raises, and split rather than merge: the employment itself (Employment), the eligibility condition behind it such as one full academic year or annual vacation (Status or Enrollment), a program end date and anything that collides with it (Program end), travel, and so on. A 10-turn appointment typically yields 2–4 cards. Example: a student asks about a summer internship, says the program ends in May, and the company wants an answer by Friday → cards "Summer internship (CPT)" [Employment], "Eligibility: one full academic year" [Status], "Program end date vs CPT dates" [Program end], "Employer deadline" [Other]. When a later turn raises a different issue, add a new card instead of growing an existing one. Keep ids stable across turns; update status and detail as the adviser decides things. Category must fit. Do not invent issues nobody raised.
+Your job after each turn: update the record (strict JSON per the schema). During the meeting the schema has no case_note or student_summary; write those only when they are in the schema (the final pass).
+- cards: one card per distinct issue the conversation raises, and split rather than merge: the employment itself (Employment), the eligibility condition behind it such as one full academic year or annual vacation (Status or Enrollment), a program end date and anything that collides with it (Program end), travel, and so on. A 10-turn appointment typically yields 2–4 cards. Example: a student asks about a summer internship, says the program ends in May, and the company wants an answer by Friday → cards "Summer internship (CPT)" [Employment], "Eligibility: one full academic year" [Status], "Program end date vs CPT dates" [Program end], "Employer deadline" [Other]. When a later turn raises a different issue, add a new card instead of growing an existing one. Keep ids stable across turns; update status and detail as the adviser decides things. Card detail is at most 30 words; card title under 6 words. Category must fit. Do not invent issues nobody raised.
 - citations / regulatory_basis: every regulatory statement must cite a source_url returned by search_sources in THIS session. If you have not searched for it, search first. If search finds nothing relevant, set source_url to "" and say so in detail. Never cite from memory.
 - timeline and every deadline: never calculate a date. Call compute_dates with ALL the facts stated so far (program end date whenever it has been stated — pass "2027-05" if only "May 2027" was said — CPT dates, full-time or not). Copy its windows and markers into timeline verbatim (markers: start = end = the date) and its deadlines into sevis_checklist with deadline_source = the rule id; a date the student merely stated may appear with source "stated".
 - citations: prefer the regulation itself (8 CFR 214.2(f)...) over agency web pages when search_sources returns both; write the citation as the section number, e.g. "8 CFR 214.2(f)(10)(i)". Search with regulatory terms ("curricular practical training integral part of established curriculum", "annual vacation full-time employment", "12 months full-time CPT OPT eligibility").
@@ -35,6 +37,7 @@ export class Agent extends EventEmitter {
     this.sources = new Map();   // url → {title, excerpt}
     this.usage = { input: 0, output: 0, calls: 0 };
     this.tools = [...henryTools, computeDatesTool];
+    this.hint = ''; this.final = false;
   }
   async post(body) {
     const r = await fetch(BASE + '/responses', { method: 'POST', headers: { Authorization: `Bearer ${this.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: MODEL, ...body }) });
@@ -51,10 +54,14 @@ export class Agent extends EventEmitter {
     try {
       const transcript = `Today: ${new Date().toISOString().slice(0, 10)}\n` + this.turns.map((t, i) => `${i + 1}. ${t.role.toUpperCase()}: ${t.text}`).join('\n');
       const input = [{ type: 'message', role: 'user', content: [{ type: 'input_text', text:
-        `Transcript so far:\n${transcript}\n\nPrevious record (update it; keep ids):\n${this.record ? JSON.stringify(this.record) : 'none yet'}` }] }];
+        `Transcript so far:\n${transcript}\n\nDates parsed by code from the transcript (pass these to compute_dates): ${this.hint || 'none yet'}\n\nPrevious record (update it; keep ids):\n${this.record ? JSON.stringify(this.record) : 'none yet'}` }] }];
       this.emit('activity', { kind: 'thinking', text: `reading turn ${this.turns.length}` });
-      let r = await this.post({ instructions: INSTRUCTIONS, input, tools: this.tools, text: { format: { type: 'json_schema', name: 'record', strict: true, schema: SCHEMA } }, reasoning: { effort: 'low' } });
-      for (let hop = 0; hop < 8; hop++) {
+      // during the meeting: fast tools only (search_sources + compute_dates), few hops; the final pass after the meeting may use ask_henry
+      const tools = this.final ? this.tools : this.tools.filter((t) => t.name !== 'ask_henry');
+      const maxHops = this.final ? 8 : 3;
+      const schema = this.final ? SCHEMA : LIVE;
+      let r = await this.post({ instructions: INSTRUCTIONS, input, tools, text: { format: { type: 'json_schema', name: 'record', strict: true, schema } }, reasoning: { effort: 'low' } });
+      for (let hop = 0; hop < maxHops; hop++) {
         const calls = (r.output || []).filter((o) => o.type === 'function_call');
         if (!calls.length) break;
         const outputs = await Promise.all(calls.map(async (c) => {
@@ -66,10 +73,12 @@ export class Agent extends EventEmitter {
           this.emit('activity', { kind: 'tool_result', name: c.name, ms: Date.now() - t0, summary: out?.sources ? `${out.sources.length} sources` : out?.windows ? `${out.windows.length} windows` : 'ok' });
           return { type: 'function_call_output', call_id: c.call_id, output: JSON.stringify(out) };
         }));
-        r = await this.post({ previous_response_id: r.id, input: outputs, tools: this.tools, text: { format: { type: 'json_schema', name: 'record', strict: true, schema: SCHEMA } }, reasoning: { effort: 'low' } });
+        r = await this.post({ previous_response_id: r.id, input: outputs, tools, text: { format: { type: 'json_schema', name: 'record', strict: true, schema } }, reasoning: { effort: 'low' } });
       }
       const text = (r.output || []).flatMap((o) => o.content || []).filter((c) => c.type === 'output_text').map((c) => c.text).join('');
       const rec = JSON.parse(text);
+      if (!rec.case_note) rec.case_note = this.record?.case_note || { facts_stated_by_student: [], advice_given: [], regulatory_basis: [] };
+      if (rec.student_summary === undefined) rec.student_summary = this.record?.student_summary || '';
       // guard: a citation must point at a URL we actually got from HenryKnows this session
       for (const c of rec.cards) for (const ci of c.citations) if (ci.source_url && !this.sources.has(ci.source_url)) { ci.citation += ' (unverified)'; ci.source_url = ''; }
       for (const ci of rec.case_note.regulatory_basis) if (ci.source_url && !this.sources.has(ci.source_url)) { ci.citation += ' (unverified)'; ci.source_url = ''; }
