@@ -114,7 +114,7 @@ wss.on('connection', async (client, req) => {
       if (start < 0) return; let i = start, sent = 0; const tf = Date.now(), SIL = Buffer.alloc(3840); log('replay feed', path.basename(file), Math.round((buf.length - start) / 48), 'ms');
       // paced by the wall clock (not timer drift): silence until the browser starts playback, then the file, 80 ms per frame
       let tail = 0;   // ~1.5 s of silence after the file so the last turn closes upstream before endStream
-      feed = setInterval(() => { if (!feedStarted && Date.now() - tf > 45000) { clearInterval(feed); feed = null; log('replay never started; feed stopped'); return; } const due = Math.floor((Date.now() - tf) / 80); while (sent < due) { if (!feedStarted) up.sendAudio(SIL); else if (i < buf.length) { up.sendAudio(buf.subarray(i, Math.min(i + 3840, buf.length))); i += 3840; } else if (tail < 19) { up.sendAudio(SIL); tail++; } else { clearInterval(feed); feed = null; log('replay feed done'); up.end(); session.end(); return; } sent++; } }, 40);
+      feed = setInterval(() => { if (!feedStarted && Date.now() - tf > 45000) { clearInterval(feed); feed = null; log('replay never started; feed stopped'); return; } const due = Math.floor((Date.now() - tf) / 80) + (feedStarted ? 12 : 0); while (sent < due) { if (!feedStarted) up.sendAudio(SIL); else if (i < buf.length) { up.sendAudio(buf.subarray(i, Math.min(i + 3840, buf.length))); i += 3840; } else if (tail < 19) { up.sendAudio(SIL); tail++; } else { clearInterval(feed); feed = null; log('replay feed done'); up.end(); session.end(); return; } sent++; } }, 20);
     }
     if (msg.type === 'mark' && msg.name === 'audio_start') feedStarted = true;
     if (msg.type === 'begin') session.begin();
