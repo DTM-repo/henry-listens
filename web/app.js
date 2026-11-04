@@ -197,7 +197,7 @@ function applyRecord(rec) {
 async function handle(ev) {
   switch (ev.type) {
     case 'relay':
-      if (ev.status === 'ready') { state.sessionId = ev.sessionId || ''; setStatus('listening'); setMode('listening'); if (MODE !== 'sample') $('#doc-add').style.display = ''; if (state.phase === 'idle') { state.phase = 'intro'; document.body.dataset.phase = 'intro'; await speak('open'); if (MODE === 'replay' && state.audio) { state.ws?.send(JSON.stringify({ type: 'mark', name: 'audio_start' })); state.audio.play(); } } }
+      if (ev.status === 'ready') { state.sessionId = ev.sessionId || ''; setStatus('listening'); setMode('listening'); if (MODE === 'replay') state.ws?.send(JSON.stringify({ type: 'replay', src: params.get('src') })); if (MODE !== 'sample') $('#doc-add').style.display = ''; if (state.phase === 'idle') { state.phase = 'intro'; document.body.dataset.phase = 'intro'; await speak('open'); if (MODE === 'replay' && state.audio) { state.ws?.send(JSON.stringify({ type: 'mark', name: 'audio_start' })); state.audio.play(); } } }
       else if (ev.status === 'upstream_closed' && state.phase === 'review') { /* normal end */ }
       else if (ev.status === 'capped') setStatus('Henry has reached today\'s session limit. Watch the sample appointment instead.', 'warn');
       else if (ev.status === 'time_cap') setStatus('20-minute limit reached; finishing the record', 'warn');
@@ -232,7 +232,7 @@ async function start() {
   ws.onmessage = (m) => { try { handle(JSON.parse(m.data)); } catch (e) { console.error(e); } };
   ws.onclose = (e) => { if (state.phase !== 'review') setStatus(`closed (${e.code})`, 'warn'); stop(false); if (state.phase === 'review' && state.record) enterReview(); };
   state.frames = 0;
-  state.node.port.onmessage = (m) => { if (ws.readyState === 1) { ws.send(m.data); state.frames++; if (state.frames % 25 === 0) $('#clock').textContent = mmss(state.frames * 80); } };
+  state.node.port.onmessage = (m) => { if (MODE === 'replay') return; if (ws.readyState === 1) { ws.send(m.data); state.frames++; if (state.frames % 25 === 0) $('#clock').textContent = mmss(state.frames * 80); } };
   running(true);
 }
 // ---------- sample: a recorded appointment replayed from its event log (no relay, no mic, no cost) ----------

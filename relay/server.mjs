@@ -99,15 +99,27 @@ wss.on('connection', async (client, req) => {
     sessions.set(hs.sessionId, session); send({ type: 'relay', status: 'ready', sessionId: hs.sessionId, mode });
   } catch (e) { log('upstream failed:', e.message); send({ type: 'relay', status: 'upstream_failed', message: e.message }); client.close(1011); return; }
 
+  let feed = null, feedStarted = false;
   const dump = process.env.DUMP_PCM ? fs.createWriteStream(`${process.env.DUMP_PCM}/asr-${id}.pcm`) : null;
   client.on('message', (data, isBinary) => {
     if (isBinary) { dump?.write(data); return up.sendAudio(data); }
     let msg; try { msg = JSON.parse(String(data)); } catch { return; }
-    if (msg.type === 'end') { log('browser ended stream after', Math.round(up.sentMs), 'ms audio'); up.end(); session.end(); }
+    if (msg.type === 'end') { if (feed) { clearInterval(feed); feed = null; } log('browser ended stream after', Math.round(up.sentMs), 'ms audio'); up.end(); session.end(); }
+    // server-side replay: the relay paces the recording into Voice Transcribe itself (the browser only plays it for the room), so
+    // the transcription stream never depends on the browser's audio clock ("ingress below real-time" in headless or throttled tabs)
+    if (msg.type === 'replay' && !feed) {
+      const file = path.join(WEB, String(msg.src || '')); if (!file.startsWith(WEB) || !fs.existsSync(file)) return;
+      const buf = fs.readFileSync(file); let pos = 12; let start = -1;   // RIFF/WAVE: walk the chunks to the PCM16 mono 24 kHz data
+      while (pos + 8 <= buf.length) { const cid = buf.toString('ascii', pos, pos + 4), len = buf.readUInt32LE(pos + 4); if (cid === 'data') { start = pos + 8; break; } pos += 8 + len + (len & 1); }
+      if (start < 0) return; let i = start, sent = 0; const tf = Date.now(), SIL = Buffer.alloc(3840); log('replay feed', path.basename(file), Math.round((buf.length - start) / 48), 'ms');
+      // paced by the wall clock (not timer drift): silence until the browser starts playback, then the file, 80 ms per frame
+      feed = setInterval(() => { const due = Math.floor((Date.now() - tf) / 80); while (sent < due) { if (!feedStarted) up.sendAudio(SIL); else if (i < buf.length) { up.sendAudio(buf.subarray(i, Math.min(i + 3840, buf.length))); i += 3840; } else { clearInterval(feed); feed = null; log('replay feed done'); up.end(); session.end(); return; } sent++; } }, 40);
+    }
+    if (msg.type === 'mark' && msg.name === 'audio_start') feedStarted = true;
     if (msg.type === 'begin') session.begin();
     if (msg.type === 'mark' && EVENT_LOG) events.push({ t: Date.now() - t0, type: 'mark', name: String(msg.name).slice(0, 40) });
   });
-  client.on('close', () => { log('browser closed'); clearTimeout(killer); for (const [k, v] of sessions) if (v === session) sessions.delete(k); if (EVENT_LOG) fs.writeFileSync(EVENT_LOG, JSON.stringify(events)); dump?.end(); up.closed ? null : up.end(); setTimeout(() => up.abort(), 3000); });
+  client.on('close', () => { log('browser closed'); clearTimeout(killer); if (feed) { clearInterval(feed); feed = null; } for (const [k, v] of sessions) if (v === session) sessions.delete(k); if (EVENT_LOG) fs.writeFileSync(EVENT_LOG, JSON.stringify(events)); dump?.end(); up.closed ? null : up.end(); setTimeout(() => up.abort(), 3000); });
 });
 
 server.listen(PORT, () => console.log(`Henry Listens relay  →  http://localhost:${PORT}   (ws /asr)`));

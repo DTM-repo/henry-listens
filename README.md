@@ -44,7 +44,7 @@ npm run dev                 # http://localhost:8787
 ```
 
 - **Live:** press Start, allow the microphone, and let each person introduce themselves as student or adviser.
-- **Replay a recording through the real pipeline:** `http://localhost:8787/?src=/test/dialog4.wav` (two synthetic macOS voices; this is also the test harness, because Chrome's fake-microphone flag delivers silence).
+- **Replay a recording through the real pipeline:** `http://localhost:8787/?src=/test/dialog4.wav` (two synthetic voices reading a script; this is also the test harness, because Chrome's fake-microphone flag delivers silence). The relay paces the file into Voice Transcribe itself, so the transcription does not depend on the browser's audio clock; the browser just plays it for the room.
 - **Static sample, no relay:** `http://localhost:8787/?sample=cpt` replays a recorded event stream and the same audio (a four-issue appointment: summer CPT, a program extension, winter travel with an expiring visa, OPT after CPT). This is what the public site plays when the relay is asleep or out of credit.
 - **Mic-free transcription test:** `npm run test:voice -- web/test/dialog4.wav`.
 - The synthetic I-20 used in the sample is `web/test/I-20.pdf` (every value invented; "SYNTHETIC SAMPLE" watermark). Drop it in with the "Add the student's I-20" button during a live or replay session.
@@ -82,7 +82,7 @@ Everything in this repository is new, with one disclosed exception: the paper-ca
 
 ## Synthetic only
 
-No real student appears anywhere, including test fixtures. The sample appointment is two macOS voices reading a script; the student's name in it is invented. On free Meta credits, content may be used for product improvement, which is another reason nothing real ever goes through this.
+No real student appears anywhere, including test fixtures. The sample appointment is two synthetic voices reading a script; the student's name in it is invented. On free Meta credits, content may be used for product improvement, which is another reason nothing real ever goes through this.
 
 ## License
 
