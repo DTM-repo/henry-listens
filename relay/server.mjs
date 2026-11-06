@@ -25,8 +25,13 @@ const EVENT_LOG = process.env.RECORD_EVENTS || '';   // write every browser-faci
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.webm': 'audio/webm', '.wav': 'audio/wav', '.mp3': 'audio/mpeg' };
 
 const VOICE = path.join(WEB, 'voice'); fs.mkdirSync(VOICE, { recursive: true });
+// Cross-origin: when the stage is served elsewhere (Netlify) and the relay here (Render), the I-20 POST needs CORS headers.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://henry-listens.netlify.app').split(',').map((s) => s.trim()).filter(Boolean);
+const cors = (req, res) => { const o = req.headers.origin; if (o && ALLOWED_ORIGINS.includes(o)) { res.setHeader('Access-Control-Allow-Origin', o); res.setHeader('Vary', 'Origin'); res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'); res.setHeader('Access-Control-Allow-Headers', 'Content-Type'); res.setHeader('Access-Control-Max-Age', '600'); } };
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
+  cors(req, res);
+  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   if (url.pathname === '/health') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ ok: true, sessions_today: daySessions, cap: MAX_SESSIONS_PER_DAY })); }
   if (req.method === 'PUT' && /^\/voice\/(open|name|go|review)\.webm$/.test(url.pathname)) {   // save a recorded Henry line
     const chunks = []; req.on('data', (c) => chunks.push(c)); req.on('end', () => { fs.writeFileSync(path.join(VOICE, path.basename(url.pathname)), Buffer.concat(chunks)); res.writeHead(204); res.end(); console.log('saved', url.pathname, Buffer.concat(chunks).length, 'bytes'); }); return;
