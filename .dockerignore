@@ -2,7 +2,5 @@ node_modules
 .env
 .env.*
 .netlify
-web/test
 docs/cases
-*.wav
 *.pcm
